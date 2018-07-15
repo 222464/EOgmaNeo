@@ -211,7 +211,7 @@ namespace eogmaneo {
         \brief Initialize defaults.
         */
         Layer()
-        : _alphaFF(0.1f), _alphaL(0.1f), _beta(0.001f), _gamma(0.99f), _codeIters(4), _maxReplaySamples(64), _replayIters(32)
+        : _alphaFF(0.01f), _alphaL(0.01f), _beta(0.001f), _gamma(0.99f), _codeIters(4), _maxReplaySamples(64), _replayIters(32)
         {}
 
         /*!
