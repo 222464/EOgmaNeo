@@ -383,7 +383,7 @@ void Layer::create(int hiddenWidth, int hiddenHeight, int columnSize, int latera
 
     _hiddenStates.resize(_hiddenWidth * _hiddenHeight, 0);
     
-    _hiddenActivations.resize(_hiddenStates.size() * _columnSize);
+    _hiddenActivations.resize(_hiddenStates.size() * _columnSize, 0.0f);
 
     std::uniform_real_distribution<float> initWeightDistLow(-0.0001f, 0.0001f);
     std::uniform_real_distribution<float> initWeightDistHigh(0.99f, 1.0f);
@@ -441,6 +441,8 @@ void Layer::create(int hiddenWidth, int hiddenHeight, int columnSize, int latera
    
                 _lateralWeights[hiddenCellIndex].resize(lateralVecSize, 0.0f);
     }
+
+    _hiddenPotentials = _hiddenActivations;
 
     _feedBack = _hiddenStatesPrev = _hiddenStates;
 
@@ -566,7 +568,10 @@ void Layer::readFromStream(std::istream &is) {
     if (_feedBack.front() == -1)
         _feedBack.clear();
 
-    _hiddenActivations.resize(_hiddenStates.size() * _columnSize);
+    _hiddenActivations.resize(_hiddenStates.size() * _columnSize, 0.0f);
+    _hiddenPotentials.resize(_hiddenActivations.size());
+
+    is.read(reinterpret_cast<char*>(_hiddenPotentials.data()), _hiddenPotentials.size() * sizeof(float));
 
     for (int v = 0; v < _visibleLayerDescs.size(); v++) {
         // Visible layer data
@@ -696,6 +701,8 @@ void Layer::writeToStream(std::ostream &os) {
         writeFeedBack.resize(_hiddenStates.size(), -1);
 
     os.write(reinterpret_cast<char*>(writeFeedBack.data()), writeFeedBack.size() * sizeof(int));
+
+    os.write(reinterpret_cast<char*>(_hiddenPotentials.data()), _hiddenPotentials.size() * sizeof(float));
 
     for (int v = 0; v < _visibleLayerDescs.size(); v++) {
         // Visible layer data
