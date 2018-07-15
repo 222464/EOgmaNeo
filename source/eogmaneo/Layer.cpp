@@ -25,6 +25,10 @@ void LayerForwardWorkItem::run(size_t threadIndex) {
 	_pLayer->columnForward(_ci);
 }
 
+void LayerLateralWorkItem::run(size_t threadIndex) {
+	_pLayer->columnLateral(_ci);
+}
+
 void LayerBackwardWorkItem::run(size_t threadIndex) {
 	_pLayer->columnBackward(_ci, _v, _rng);
 }
@@ -38,6 +42,37 @@ void Layer::columnForward(int ci) {
     int hiddenCellIndexPrev = ci + hiddenStatePrev * _hiddenWidth * _hiddenHeight;
 
     std::vector<float> columnActivations(_columnSize, 0.0f);
+
+    // Learn lateral
+    if (_learn) {
+        int lateralDiam = _lateralRadius * 2 + 1;
+
+        int lateralSize = lateralDiam * lateralDiam;
+
+        int lowerHiddenX = hiddenColumnX - _lateralRadius;
+        int lowerHiddenY = hiddenColumnY - _lateralRadius;
+
+        for (int dcx = -_lateralRadius; dcx <= _lateralRadius; dcx++)
+            for (int dcy = -_lateralRadius; dcy <= _lateralRadius; dcy++) {
+                int cx = hiddenColumnX + dcx;
+                int cy = hiddenColumnY + dcy;
+
+                if (cx >= 0 && cx < _hiddenWidth && cy >= 0 && cy < _hiddenHeight) {
+                    int otherHiddenColumnIndex = cx + cy * _hiddenWidth;
+
+                    int otherHiddenStatePrev = _hiddenStatesPrev[otherHiddenColumnIndex];
+
+                    // Input cells
+                    for (int c = 0; c < _columnSize; c++) {
+                        int wi = (cx - lowerHiddenX) + (cy - lowerHiddenY) * lateralDiam + c * lateralSize;
+
+                        float target = c == otherHiddenStatePrev ? 1.0f : 0.0f;
+
+                        _lateralWeights[hiddenCellIndexPrev][wi] += _alphaL * (target - _lateralWeights[hiddenCellIndexPrev][wi]);
+                    }
+                }
+            }
+    }
 
     // Activate feed forward
     for (int v = 0; v < _visibleLayerDescs.size(); v++) {
@@ -67,43 +102,24 @@ void Layer::columnForward(int ci) {
                     int inputIndex = _inputs[v][visibleColumnIndex];
                     int inputIndexPrev = _inputsPrev[v][visibleColumnIndex];
 
-                    if (_codeIter == 0 && _learn && !_reconsActLearn.empty()) {
+                    if (_learn) {
                         // Input cells
                         for (int c = 0; c < _visibleLayerDescs[v]._columnSize; c++) {
                             int wi = (cx - lowerVisibleX) + (cy - lowerVisibleY) * forwardDiam + c * forwardSize;
 
-                            int visibleCellIndex = visibleColumnIndex + c * _visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height;
-
-                            float recon = _reconsActLearn[v][visibleCellIndex] / std::max(1.0f, _reconCountsActLearn[v][visibleCellIndex]);
-
                             float target = c == inputIndexPrev ? 1.0f : 0.0f;
 
-                            _feedForwardWeights[v][hiddenCellIndexPrev][wi] = std::max(0.0f, _feedForwardWeights[v][hiddenCellIndexPrev][wi] + _alpha * std::min(0.0f, target - recon));
+                            _feedForwardWeights[v][hiddenCellIndexPrev][wi] += _alphaFF * (target - _feedForwardWeights[v][hiddenCellIndexPrev][wi]);
                         }
                     }
 
                     // Output cells
-                    if (_codeIter == 0) {
-                        int wi = (cx - lowerVisibleX) + (cy - lowerVisibleY) * forwardDiam + inputIndex * forwardSize;
+                    int wi = (cx - lowerVisibleX) + (cy - lowerVisibleY) * forwardDiam + inputIndex * forwardSize;
 
-                        for (int c = 0; c < _columnSize; c++) {
-                            int hiddenCellIndex = ci + c * _hiddenWidth * _hiddenHeight;
-                            
-                            columnActivations[c] += _feedForwardWeights[v][hiddenCellIndex][wi];
-                        }
-                    }
-                    else {
-                        int wi = (cx - lowerVisibleX) + (cy - lowerVisibleY) * forwardDiam + inputIndex * forwardSize;
-
-                        int visibleCellIndex = visibleColumnIndex + inputIndex * _visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height;
-
-                        float recon = _reconsActLearn[v][visibleCellIndex] / std::max(1.0f, _reconCountsActLearn[v][visibleCellIndex]);
-
-                        for (int c = 0; c < _columnSize; c++) {
-                            int hiddenCellIndex = ci + c * _hiddenWidth * _hiddenHeight;
-                            
-                            columnActivations[c] += _feedForwardWeights[v][hiddenCellIndex][wi] * std::max(0.0f, 1.0f - recon);
-                        }
+                    for (int c = 0; c < _columnSize; c++) {
+                        int hiddenCellIndex = ci + c * _hiddenWidth * _hiddenHeight;
+                        
+                        columnActivations[c] += _feedForwardWeights[v][hiddenCellIndex][wi];
                     }
                 }
             }
@@ -111,63 +127,77 @@ void Layer::columnForward(int ci) {
 
 	// Find max element
 	int maxCellIndex = 0;
-    float maxValue = -99999.0f;
 
 	for (int c = 0; c < _columnSize; c++) {
         int hiddenCellIndex = ci + c * _hiddenWidth * _hiddenHeight;
 
-        if (_codeIter == 0)
-            _hiddenActivations[hiddenCellIndex] = columnActivations[c];
-        else
-            _hiddenActivations[hiddenCellIndex] += columnActivations[c];
+        _hiddenActivations[hiddenCellIndex] = columnActivations[c];
+        _hiddenPotentials[hiddenCellIndex] = _hiddenActivations[hiddenCellIndex];
 
-		if (_hiddenActivations[hiddenCellIndex] > maxValue) {
-            maxValue = _hiddenActivations[hiddenCellIndex];
+		if (columnActivations[c] > columnActivations[maxCellIndex])
 			maxCellIndex = c;
-        }
 	}
 
     _hiddenStates[ci] = maxCellIndex;
+}
 
-    int hiddenCellIndex = ci + maxCellIndex * _hiddenWidth * _hiddenHeight;
+void Layer::columnLateral(int ci) {
+    int hiddenColumnX = ci % _hiddenWidth;
+    int hiddenColumnY = ci / _hiddenWidth;
 
-    // Reconstruct
-    for (int v = 0; v < _visibleLayerDescs.size(); v++) {
-        float toInputX = static_cast<float>(_visibleLayerDescs[v]._width) / static_cast<float>(_hiddenWidth);
-        float toInputY = static_cast<float>(_visibleLayerDescs[v]._height) / static_cast<float>(_hiddenHeight);
+    std::vector<float> columnActivations(_columnSize, 0.0f);
 
-        int visibleCenterX = hiddenColumnX * toInputX + 0.5f;
-        int visibleCenterY = hiddenColumnY * toInputY + 0.5f;
+    // Learn lateral
+    int lateralDiam = _lateralRadius * 2 + 1;
 
-        int forwardRadius = _visibleLayerDescs[v]._forwardRadius;
+    int lateralSize = lateralDiam * lateralDiam;
 
-        int forwardDiam = forwardRadius * 2 + 1;
+    int lowerHiddenX = hiddenColumnX - _lateralRadius;
+    int lowerHiddenY = hiddenColumnY - _lateralRadius;
 
-        int forwardSize = forwardDiam * forwardDiam;
+    for (int dcx = -_lateralRadius; dcx <= _lateralRadius; dcx++)
+        for (int dcy = -_lateralRadius; dcy <= _lateralRadius; dcy++) {
+            // No self-inhibition
+            if (dcx == 0 && dcy == 0)
+                continue;
 
-        int lowerVisibleX = visibleCenterX - forwardRadius;
-        int lowerVisibleY = visibleCenterY - forwardRadius;
+            int cx = hiddenColumnX + dcx;
+            int cy = hiddenColumnY + dcy;
 
-        for (int dcx = -forwardRadius; dcx <= forwardRadius; dcx++)
-            for (int dcy = -forwardRadius; dcy <= forwardRadius; dcy++) {
-                int cx = visibleCenterX + dcx;
-                int cy = visibleCenterY + dcy;
+            if (cx >= 0 && cx < _hiddenWidth && cy >= 0 && cy < _hiddenHeight) {
+                int otherHiddenColumnIndex = cx + cy * _hiddenWidth;
 
-                if (cx >= 0 && cx < _visibleLayerDescs[v]._width && cy >= 0 && cy < _visibleLayerDescs[v]._height) {
-                    int visibleColumnIndex = cx + cy * _visibleLayerDescs[v]._width;
+                int inputIndex = _hiddenStatesIntermediate[otherHiddenColumnIndex];
 
-                    // Input cells
-                    for (int c = 0; c < _visibleLayerDescs[v]._columnSize; c++) {
-                        int wi = (cx - lowerVisibleX) + (cy - lowerVisibleY) * forwardDiam + c * forwardSize;
+                // Output cells
+                int wi = (cx - lowerHiddenX) + (cy - lowerHiddenY) * lateralDiam + inputIndex * lateralSize;
 
-                        int visibleCellIndex = visibleColumnIndex + c * _visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height;
+                for (int c = 0; c < _columnSize; c++) {
+                    int hiddenCellIndex = ci + c * _hiddenWidth * _hiddenHeight;
 
-                        _recons[v][visibleCellIndex] += _feedForwardWeights[v][hiddenCellIndex][wi];
-                        _reconCounts[v][visibleCellIndex] += 1.0f;
-                    }
+                    columnActivations[c] += _lateralWeights[hiddenCellIndex][wi];
                 }
             }
-    }
+        }
+
+	// Find max element
+	int maxCellIndex = 0;
+    float maxActivation = -99999.0f;
+
+	for (int c = 0; c < columnActivations.size(); c++) {
+        int hiddenCellIndex = ci + c * _hiddenWidth * _hiddenHeight;
+
+        _hiddenPotentials[hiddenCellIndex] += _hiddenActivations[hiddenCellIndex] - columnActivations[c];
+
+        if (_hiddenPotentials[hiddenCellIndex] > maxActivation) {
+            maxActivation = _hiddenPotentials[hiddenCellIndex];
+
+            maxCellIndex = c;
+        }
+	}
+
+    // New hidden states
+    _hiddenStates[ci] = maxCellIndex;
 }
 
 void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
@@ -336,12 +366,13 @@ void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
     }
 }
 
-void Layer::create(int hiddenWidth, int hiddenHeight, int columnSize, const std::vector<VisibleLayerDesc> &visibleLayerDescs, unsigned long seed) {
+void Layer::create(int hiddenWidth, int hiddenHeight, int columnSize, int lateralRadius, const std::vector<VisibleLayerDesc> &visibleLayerDescs, unsigned long seed) {
     std::mt19937 rng(seed);
 
     _hiddenWidth = hiddenWidth;
     _hiddenHeight = hiddenHeight;
     _columnSize = columnSize;
+    _lateralRadius = lateralRadius;
 
     _visibleLayerDescs = visibleLayerDescs;
 
@@ -397,6 +428,20 @@ void Layer::create(int hiddenWidth, int hiddenHeight, int columnSize, const std:
         }
     }
 
+    _lateralWeights.resize(_hiddenWidth * _hiddenHeight * _columnSize);
+
+    int lateralVecSize = _lateralRadius * 2 + 1;
+
+    lateralVecSize *= lateralVecSize * _columnSize;
+
+    for (int x = 0; x < _hiddenWidth; x++)
+        for (int y = 0; y < _hiddenHeight; y++)
+            for (int c = 0; c < _columnSize; c++) {
+                int hiddenCellIndex = x + y * _hiddenWidth + c * _hiddenWidth * _hiddenHeight;
+   
+                _lateralWeights[hiddenCellIndex].resize(lateralVecSize, 0.0f);
+    }
+
     _feedBack = _hiddenStatesPrev = _hiddenStates;
 
     _predictions = _inputsPrev = _inputs;
@@ -410,21 +455,24 @@ void Layer::forward(ComputeSystem &cs, const std::vector<std::vector<int>> &inpu
 
     _hiddenStatesPrev = _hiddenStates;
 
+    // Queue tasks
+    for (int ci = 0; ci < _hiddenStates.size(); ci++) {
+        std::shared_ptr<LayerForwardWorkItem> item = std::make_shared<LayerForwardWorkItem>();
+
+        item->_pLayer = this;
+        item->_ci = ci;
+
+        cs._pool.addItem(item);
+    }
+    
+    cs._pool.wait();
+
     // Several inhibition iterations
     for (int it = 0; it < _codeIters; it++) {
-        _codeIter = it;
-
-        // Clear recons
-        _recons.clear();
-        _recons.resize(_visibleLayerDescs.size());
-
-        for (int v = 0; v < _visibleLayerDescs.size(); v++)
-            _recons[v].resize(_visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height * _visibleLayerDescs[v]._columnSize, 0.0f);
-        
-        _reconCounts = _recons;
+        _hiddenStatesIntermediate = _hiddenStates;
 
         for (int ci = 0; ci < _hiddenStates.size(); ci++) {
-            std::shared_ptr<LayerForwardWorkItem> item = std::make_shared<LayerForwardWorkItem>();
+            std::shared_ptr<LayerLateralWorkItem> item = std::make_shared<LayerLateralWorkItem>();
 
             item->_pLayer = this;
             item->_ci = ci;
@@ -433,9 +481,6 @@ void Layer::forward(ComputeSystem &cs, const std::vector<std::vector<int>> &inpu
         }
         
         cs._pool.wait();
-
-        _reconsActLearn = _recons;
-        _reconCountsActLearn = _reconCounts;
     }
 }
 
@@ -482,9 +527,11 @@ void Layer::readFromStream(std::istream &is) {
     is.read(reinterpret_cast<char*>(&_hiddenWidth), sizeof(int));
     is.read(reinterpret_cast<char*>(&_hiddenHeight), sizeof(int));
     is.read(reinterpret_cast<char*>(&_columnSize), sizeof(int));
+    is.read(reinterpret_cast<char*>(&_lateralRadius), sizeof(int));
 
     // Read hyperparameters
-    is.read(reinterpret_cast<char*>(&_alpha), sizeof(float));
+    is.read(reinterpret_cast<char*>(&_alphaFF), sizeof(float));
+    is.read(reinterpret_cast<char*>(&_alphaL), sizeof(float));
     is.read(reinterpret_cast<char*>(&_beta), sizeof(float));
     is.read(reinterpret_cast<char*>(&_gamma), sizeof(float));
     is.read(reinterpret_cast<char*>(&_codeIters), sizeof(int));
@@ -568,6 +615,22 @@ void Layer::readFromStream(std::istream &is) {
         }
     }
 
+    _lateralWeights.resize(_hiddenWidth * _hiddenHeight * _columnSize);
+
+    int lateralVecSize = _lateralRadius * 2 + 1;
+
+    lateralVecSize *= lateralVecSize * _columnSize;
+
+    for (int x = 0; x < _hiddenWidth; x++)
+        for (int y = 0; y < _hiddenHeight; y++)
+            for (int c = 0; c < _columnSize; c++) {
+                int hiddenCellIndex = x + y * _hiddenWidth + c * _hiddenWidth * _hiddenHeight;
+   
+                _lateralWeights[hiddenCellIndex].resize(lateralVecSize);
+
+                is.read(reinterpret_cast<char*>(_lateralWeights[hiddenCellIndex].data()), _lateralWeights[hiddenCellIndex].size() * sizeof(float));
+    }
+
     // Load replay samples
     int numSamples;
 
@@ -606,9 +669,11 @@ void Layer::writeToStream(std::ostream &os) {
     os.write(reinterpret_cast<char*>(&_hiddenWidth), sizeof(int));
     os.write(reinterpret_cast<char*>(&_hiddenHeight), sizeof(int));
     os.write(reinterpret_cast<char*>(&_columnSize), sizeof(int));
+    os.write(reinterpret_cast<char*>(&_lateralRadius), sizeof(int));
 
     // Write hyperparameters
-    os.write(reinterpret_cast<char*>(&_alpha), sizeof(float));
+    os.write(reinterpret_cast<char*>(&_alphaFF), sizeof(float));
+    os.write(reinterpret_cast<char*>(&_alphaL), sizeof(float));
     os.write(reinterpret_cast<char*>(&_beta), sizeof(float));
     os.write(reinterpret_cast<char*>(&_gamma), sizeof(float));
     os.write(reinterpret_cast<char*>(&_codeIters), sizeof(int));
@@ -657,6 +722,14 @@ void Layer::writeToStream(std::ostream &os) {
                         os.write(reinterpret_cast<char*>(_feedBackWeights[v][visibleCellIndex].data()), _feedBackWeights[v][visibleCellIndex].size() * sizeof(float));
                     }
         }
+    }
+
+    for (int x = 0; x < _hiddenWidth; x++)
+        for (int y = 0; y < _hiddenHeight; y++)
+            for (int c = 0; c < _columnSize; c++) {
+                int hiddenCellIndex = x + y * _hiddenWidth + c * _hiddenWidth * _hiddenHeight;
+   
+                os.write(reinterpret_cast<char*>(_lateralWeights[hiddenCellIndex].data()), _lateralWeights[hiddenCellIndex].size() * sizeof(float));
     }
 
     // Save replay samples

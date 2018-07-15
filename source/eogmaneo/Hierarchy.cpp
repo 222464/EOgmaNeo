@@ -80,7 +80,7 @@ void Hierarchy::create(const std::vector<std::pair<int, int> > &inputSizes, cons
 				_histories[l][v].resize(layerDescs[l - 1]._width * layerDescs[l - 1]._height, 0);
         }
 		
-        _layers[l].create(layerDescs[l]._width, layerDescs[l]._height, layerDescs[l]._columnSize, visibleLayerDescs, seed + l + 1);
+        _layers[l].create(layerDescs[l]._width, layerDescs[l]._height, layerDescs[l]._columnSize, layerDescs[l]._lateralRadius, visibleLayerDescs, seed + l + 1);
     }
 }
 

@@ -39,6 +39,22 @@ namespace eogmaneo {
 	};
 
     /*!
+    \brief Layer lateral work item. Internal use only.
+    */
+	class LayerLateralWorkItem : public WorkItem {
+	public:
+		Layer* _pLayer;
+
+		int _ci;
+
+		LayerLateralWorkItem()
+			: _pLayer(nullptr)
+		{}
+
+		void run(size_t threadIndex) override;
+    };
+
+    /*!
     \brief Layer backward work item. Internal use only.
     */
 	class LayerBackwardWorkItem : public WorkItem {
@@ -116,13 +132,18 @@ namespace eogmaneo {
         int _hiddenWidth;
         int _hiddenHeight;
         int _columnSize;
+        int _lateralRadius;
 
         std::vector<int> _hiddenStates;
         std::vector<int> _hiddenStatesPrev;
+
+        std::vector<int> _hiddenStatesIntermediate;
         
         std::vector<float> _hiddenActivations;
-        
+        std::vector<float> _hiddenPotentials;
+
         std::vector<std::vector<std::vector<float>>> _feedForwardWeights;
+        std::vector<std::vector<float>> _lateralWeights;
         std::vector<std::vector<std::vector<float>>> _feedBackWeights;
 
         std::vector<VisibleLayerDesc> _visibleLayerDescs;
@@ -131,12 +152,6 @@ namespace eogmaneo {
         
         std::vector<std::vector<int>> _inputs;
         std::vector<std::vector<int>> _inputsPrev;
-
-        std::vector<std::vector<float>> _recons;
-        std::vector<std::vector<float>> _reconCounts;
-
-        std::vector<std::vector<float>> _reconsActLearn;
-        std::vector<std::vector<float>> _reconCountsActLearn;
         
         std::vector<int> _feedBack;
 
@@ -147,6 +162,7 @@ namespace eogmaneo {
         std::vector<ReplaySample> _replaySamples;
   
         void columnForward(int ci);
+        void columnLateral(int ci);
         void columnBackward(int ci, int v, std::mt19937 &rng);
 
         /*!
@@ -159,7 +175,12 @@ namespace eogmaneo {
         /*!
         \brief Learning rate for feed forward weights.
         */
-        float _alpha;
+        float _alphaFF;
+
+        /*!
+        \brief Learning rate for lateral weights.
+        */
+        float _alphaL;
         
         /*!
         \brief Learning rate for feed back weights.
@@ -190,7 +211,7 @@ namespace eogmaneo {
         \brief Initialize defaults.
         */
         Layer()
-        : _alpha(0.1f), _beta(0.001f), _gamma(0.99f), _codeIters(2), _maxReplaySamples(64), _replayIters(32)
+        : _alphaFF(0.1f), _alphaL(0.1f), _beta(0.001f), _gamma(0.99f), _codeIters(4), _maxReplaySamples(64), _replayIters(32)
         {}
 
         /*!
@@ -198,11 +219,11 @@ namespace eogmaneo {
         \param hiddenWidth width of the layer.
         \param hiddenHeight height of the layer.
         \param columnSize column size of the layer.
-        \param hasFeedBack whether this layer has feed back.
+        \param lateralRadius lateral connectivity radius of the layer.
         \param visibleLayerDescs descriptor structures for all visible layers this (hidden) layer has.
         \param seed random number generator seed for layer generation.
         */
-        void create(int hiddenWidth, int hiddenHeight, int columnSize, const std::vector<VisibleLayerDesc> &visibleLayerDescs, unsigned long seed);
+        void create(int hiddenWidth, int hiddenHeight, int columnSize, int lateralRadius, const std::vector<VisibleLayerDesc> &visibleLayerDescs, unsigned long seed);
 
         /*!
         \brief Forward activation and learning.
@@ -282,6 +303,7 @@ namespace eogmaneo {
         }
 
         friend class LayerForwardWorkItem;
+        friend class LayerLateralWorkItem;
         friend class LayerBackwardWorkItem;
 
         friend class Hierarchy;

@@ -33,6 +33,7 @@ namespace eogmaneo {
         \brief Radii of forward, lateral and backward sparse weight matrices.
         */
 		int _forwardRadius;
+        int _lateralRadius;
         int _backwardRadius;
         //!@}
 
@@ -51,7 +52,7 @@ namespace eogmaneo {
         */
 		LayerDesc()
 			: _width(4), _height(4), _columnSize(16),
-			_forwardRadius(2), _backwardRadius(2),
+			_forwardRadius(2), _lateralRadius(2), _backwardRadius(2),
 			_ticksPerUpdate(2), _temporalHorizon(2)
 		{}
 	};

@@ -49,6 +49,7 @@
 %template(StdVecb) std::vector<bool>;
 
 %ignore eogmaneo::LayerForwardWorkItem;
+%ignore eogmaneo::LayerLateralWorkItem;
 %ignore eogmaneo::LayerBackwardWorkItem;
 
 %include "ComputeSystem.h"
