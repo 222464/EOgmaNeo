@@ -41,8 +41,6 @@ void Layer::columnForward(int ci) {
 
     int hiddenCellIndexPrev = ci + hiddenStatePrev * _hiddenWidth * _hiddenHeight;
 
-    std::vector<float> columnActivations(_columnSize, 0.0f);
-
     // Learn lateral
     if (_learn) {
         int lateralDiam = _lateralRadius * 2 + 1;
@@ -73,6 +71,9 @@ void Layer::columnForward(int ci) {
                 }
             }
     }
+
+    std::vector<float> columnActivations(_columnSize, 0.0f);
+    float count = 0.0f;
 
     // Activate feed forward
     for (int v = 0; v < _visibleLayerDescs.size(); v++) {
@@ -121,15 +122,21 @@ void Layer::columnForward(int ci) {
                         
                         columnActivations[c] += _feedForwardWeights[v][hiddenCellIndex][wi];
                     }
+
+                    count += 1.0f;
                 }
             }
     }
+
+    float rescale = 1.0f / std::max(1.0f, count);
 
 	// Find max element
 	int maxCellIndex = 0;
 
 	for (int c = 0; c < _columnSize; c++) {
         int hiddenCellIndex = ci + c * _hiddenWidth * _hiddenHeight;
+
+        columnActivations[c] *= rescale;
 
         _hiddenActivations[hiddenCellIndex] = columnActivations[c];
         _hiddenPotentials[hiddenCellIndex] = _hiddenActivations[hiddenCellIndex];
@@ -146,6 +153,7 @@ void Layer::columnLateral(int ci) {
     int hiddenColumnY = ci / _hiddenWidth;
 
     std::vector<float> columnActivations(_columnSize, 0.0f);
+    float count = 0.0f;
 
     // Learn lateral
     int lateralDiam = _lateralRadius * 2 + 1;
@@ -177,8 +185,12 @@ void Layer::columnLateral(int ci) {
 
                     columnActivations[c] += _lateralWeights[hiddenCellIndex][wi];
                 }
+
+                count += 1.0f;
             }
         }
+
+    float rescale = 1.0f / std::max(1.0f, count);
 
 	// Find max element
 	int maxCellIndex = 0;
@@ -186,6 +198,8 @@ void Layer::columnLateral(int ci) {
 
 	for (int c = 0; c < columnActivations.size(); c++) {
         int hiddenCellIndex = ci + c * _hiddenWidth * _hiddenHeight;
+
+        columnActivations[c] *= rescale;
 
         _hiddenPotentials[hiddenCellIndex] += _hiddenActivations[hiddenCellIndex] - columnActivations[c];
 
