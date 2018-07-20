@@ -115,16 +115,6 @@ namespace eogmaneo {
 	};
 
     /*!
-    \brief History sample.
-    */
-    struct HistorySample {
-        std::vector<int> _hiddenStates;
-        std::vector<int> _feedBack;
-        std::vector<std::vector<int> > _predictionsPrev;
-        float _reward;
-    };
-
-    /*!
     \brief A layer in the hierarchy.
     */
     class Layer {
@@ -145,21 +135,24 @@ namespace eogmaneo {
         std::vector<std::vector<std::vector<float>>> _feedForwardWeights;
         std::vector<std::vector<float>> _lateralWeights;
         std::vector<std::vector<std::vector<float>>> _feedBackWeights;
+        std::vector<std::vector<std::unordered_map<int, float>>> _feedBackTraces;
 
         std::vector<VisibleLayerDesc> _visibleLayerDescs;
 
         std::vector<std::vector<int>> _predictions;
-        
+        std::vector<std::vector<float>> _predictionActivations;
+
         std::vector<std::vector<int>> _inputs;
         std::vector<std::vector<int>> _inputsPrev;
         
         std::vector<int> _feedBack;
+        std::vector<int> _feedBackPrev;
 
         bool _learn;
 
         int _codeIter;
-        
-        std::vector<HistorySample> _historySamples;
+
+        float _reward;
   
         void columnForward(int ci);
         void columnLateral(int ci);
@@ -198,20 +191,25 @@ namespace eogmaneo {
         float _epsilon;
 
         /*!
-        \brief Sparse coding iterations.
+        \brief Trace decay.
         */
-        int _codeIters;
+        float _traceDecay;
 
         /*!
-        \brief Maximum number of history samples.
+        \brief Minimum trace magnitude.
         */
-        int _maxHistorySamples;
+        float _minTrace;
+
+        /*!
+        \brief Number of coding iterations.
+        */
+        int _codeIters;
 
         /*!
         \brief Initialize defaults.
         */
         Layer()
-        : _alphaFF(0.01f), _alphaL(0.01f), _beta(0.001f), _gamma(0.95f), _epsilon(0.01f), _codeIters(4), _maxHistorySamples(64)
+        : _alphaFF(0.01f), _alphaL(0.01f), _beta(0.001f), _gamma(0.95f), _epsilon(0.01f), _traceDecay(0.95f), _minTrace(0.01f), _codeIters(4)
         {}
 
         /*!
