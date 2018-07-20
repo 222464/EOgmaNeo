@@ -115,12 +115,12 @@ namespace eogmaneo {
 	};
 
     /*!
-    \brief Replay sample.
+    \brief History sample.
     */
-    struct ReplaySample {
+    struct HistorySample {
         std::vector<int> _hiddenStates;
         std::vector<int> _feedBack;
-        std::vector<std::vector<int> > _inputs;
+        std::vector<std::vector<int> > _predictionsPrev;
         float _reward;
     };
 
@@ -159,7 +159,7 @@ namespace eogmaneo {
 
         int _codeIter;
         
-        std::vector<ReplaySample> _replaySamples;
+        std::vector<HistorySample> _historySamples;
   
         void columnForward(int ci);
         void columnLateral(int ci);
@@ -193,25 +193,30 @@ namespace eogmaneo {
         float _gamma;
 
         /*!
+        \brief Exploration rate.
+        */
+        float _epsilon;
+
+        /*!
         \brief Sparse coding iterations.
         */
         int _codeIters;
 
         /*!
-        \brief Maximum number of replay samples.
+        \brief Maximum number of history samples.
         */
-        int _maxReplaySamples;
+        int _maxHistorySamples;
 
         /*!
-        \brief Number of replay iterations.
+        \brief Number of history iterations.
         */
-        int _replayIters;
+        int _historyIters;
 
         /*!
         \brief Initialize defaults.
         */
         Layer()
-        : _alphaFF(0.01f), _alphaL(0.01f), _beta(0.001f), _gamma(0.99f), _codeIters(4), _maxReplaySamples(64), _replayIters(32)
+        : _alphaFF(0.01f), _alphaL(0.01f), _beta(0.001f), _gamma(0.99f), _epsilon(0.01f), _codeIters(4), _maxHistorySamples(64), _historyIters(32)
         {}
 
         /*!
