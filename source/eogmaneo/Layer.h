@@ -208,15 +208,10 @@ namespace eogmaneo {
         int _maxHistorySamples;
 
         /*!
-        \brief Number of history iterations.
-        */
-        int _historyIters;
-
-        /*!
         \brief Initialize defaults.
         */
         Layer()
-        : _alphaFF(0.01f), _alphaL(0.01f), _beta(0.001f), _gamma(0.99f), _epsilon(0.01f), _codeIters(4), _maxHistorySamples(64), _historyIters(32)
+        : _alphaFF(0.01f), _alphaL(0.01f), _beta(0.001f), _gamma(0.95f), _epsilon(0.01f), _codeIters(4), _maxHistorySamples(64)
         {}
 
         /*!
