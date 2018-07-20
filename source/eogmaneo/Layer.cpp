@@ -41,6 +41,9 @@ void Layer::columnForward(int ci) {
 
     int hiddenCellIndexPrev = ci + hiddenStatePrev * _hiddenWidth * _hiddenHeight;
 
+    float rateL = _alphaL / (1.0f + _hiddenRates[hiddenCellIndexPrev]);
+    float rateFF = _alphaFF / (1.0f + _hiddenRates[hiddenCellIndexPrev]);
+
     // Learn lateral
     if (_learn) {
         int lateralDiam = _lateralRadius * 2 + 1;
@@ -66,7 +69,7 @@ void Layer::columnForward(int ci) {
 
                         float target = c == otherHiddenStatePrev ? 1.0f : 0.0f;
 
-                        _lateralWeights[hiddenCellIndexPrev][wi] += _alphaL * (target - _lateralWeights[hiddenCellIndexPrev][wi]);
+                        _lateralWeights[hiddenCellIndexPrev][wi] += rateL * (target - _lateralWeights[hiddenCellIndexPrev][wi]);
                     }
                 }
             }
@@ -110,7 +113,7 @@ void Layer::columnForward(int ci) {
 
                             float target = (c == inputIndexPrev ? 1.0f : 0.0f);
 
-                            _feedForwardWeights[v][hiddenCellIndexPrev][wi] += _alphaFF * (target - _feedForwardWeights[v][hiddenCellIndexPrev][wi]);
+                            _feedForwardWeights[v][hiddenCellIndexPrev][wi] += rateFF * (target - _feedForwardWeights[v][hiddenCellIndexPrev][wi]);
                         }
                     }
 
@@ -127,6 +130,8 @@ void Layer::columnForward(int ci) {
                 }
             }
     }
+
+    _hiddenRates[hiddenCellIndexPrev] = std::min(99999.0f, _hiddenRates[hiddenCellIndexPrev] + 1.0f);
 
     float rescale = 1.0f / std::max(1.0f, count);
 
@@ -430,7 +435,7 @@ void Layer::create(int hiddenWidth, int hiddenHeight, int columnSize, int latera
                 _lateralWeights[hiddenCellIndex].resize(lateralVecSize, 0.0f);
     }
 
-    _hiddenPotentials = _hiddenActivations;
+    _hiddenRates = _hiddenPotentials = _hiddenActivations;
 
     _feedBackPrev = _feedBack = _hiddenStatesPrev = _hiddenStates;
 
@@ -556,9 +561,10 @@ void Layer::readFromStream(std::istream &is) {
         _feedBackPrev.clear();
 
     _hiddenActivations.resize(_hiddenStates.size() * _columnSize, 0.0f);
-    _hiddenPotentials.resize(_hiddenActivations.size());
+    _hiddenPotentials.resize(_hiddenActivations.size(), 0.0f);
+    _hiddenRates.resize(_hiddenActivations.size());
 
-    is.read(reinterpret_cast<char*>(_hiddenPotentials.data()), _hiddenPotentials.size() * sizeof(float));
+    is.read(reinterpret_cast<char*>(_hiddenRates.data()), _hiddenRates.size() * sizeof(float));
 
     for (int v = 0; v < _visibleLayerDescs.size(); v++) {
         // Visible layer data
@@ -681,7 +687,7 @@ void Layer::writeToStream(std::ostream &os) {
     os.write(reinterpret_cast<char*>(writeFeedBack.data()), writeFeedBack.size() * sizeof(int));
     os.write(reinterpret_cast<char*>(writeFeedBackPrev.data()), writeFeedBackPrev.size() * sizeof(int));
 
-    os.write(reinterpret_cast<char*>(_hiddenPotentials.data()), _hiddenPotentials.size() * sizeof(float));
+    os.write(reinterpret_cast<char*>(_hiddenRates.data()), _hiddenRates.size() * sizeof(float));
 
     for (int v = 0; v < _visibleLayerDescs.size(); v++) {
         // Visible layer data

@@ -131,6 +131,7 @@ namespace eogmaneo {
         
         std::vector<float> _hiddenActivations;
         std::vector<float> _hiddenPotentials;
+        std::vector<float> _hiddenRates;
 
         std::vector<std::vector<std::vector<float>>> _feedForwardWeights;
         std::vector<std::vector<float>> _lateralWeights;
@@ -209,7 +210,7 @@ namespace eogmaneo {
         \brief Initialize defaults.
         */
         Layer()
-        : _alphaFF(0.01f), _alphaL(0.01f), _beta(0.001f), _gamma(0.95f), _epsilon(0.01f), _traceDecay(0.95f), _minTrace(0.01f), _codeIters(4)
+        : _alphaFF(1.0f), _alphaL(1.0f), _beta(0.01f), _gamma(0.95f), _epsilon(0.01f), _traceDecay(0.95f), _minTrace(0.01f), _codeIters(4)
         {}
 
         /*!
