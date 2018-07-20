@@ -339,6 +339,7 @@ void Layer::create(int hiddenWidth, int hiddenHeight, int columnSize, int latera
 
     _feedForwardWeights.resize(_visibleLayerDescs.size());
     _feedBackWeights.resize(_visibleLayerDescs.size());
+    _feedBackTraces.resize(_visibleLayerDescs.size());
 
     _inputs.resize(_visibleLayerDescs.size());
     _predictionActivations.resize(_visibleLayerDescs.size());
@@ -373,6 +374,7 @@ void Layer::create(int hiddenWidth, int hiddenHeight, int columnSize, int latera
 
         if (_visibleLayerDescs[v]._predict) {
             _feedBackWeights[v].resize(_visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height * _visibleLayerDescs[v]._columnSize);
+            _feedBackTraces[v].resize(_feedBackWeights[v].size());
 
             int backwardVecSize = _visibleLayerDescs[v]._backwardRadius * 2 + 1;
 
@@ -510,6 +512,7 @@ void Layer::readFromStream(std::istream &is) {
 
     _feedForwardWeights.resize(_visibleLayerDescs.size());
     _feedBackWeights.resize(_visibleLayerDescs.size());
+    _feedBackTraces.resize(_visibleLayerDescs.size());
    
     // Hidden data
     _hiddenStates.resize(_hiddenWidth * _hiddenHeight);
@@ -567,6 +570,7 @@ void Layer::readFromStream(std::istream &is) {
         // Backward weights
         if (_visibleLayerDescs[v]._predict) {
             _feedBackWeights[v].resize(_visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height * _visibleLayerDescs[v]._columnSize);
+            _feedBackTraces[v].resize(_feedBackWeights[v].size());
 
             int backwardVecSize = _visibleLayerDescs[v]._backwardRadius * 2 + 1;
 
@@ -580,6 +584,20 @@ void Layer::readFromStream(std::istream &is) {
                         _feedBackWeights[v][visibleCellIndex].resize(backwardVecSize);
                             
                         is.read(reinterpret_cast<char*>(_feedBackWeights[v][visibleCellIndex].data()), _feedBackWeights[v][visibleCellIndex].size() * sizeof(float));
+
+                        // Load traces
+                        int numPairs;
+
+                        is.read(reinterpret_cast<char*>(&numPairs), sizeof(int));
+
+                        std::vector<int> keys(numPairs);
+                        std::vector<float> values(numPairs);
+
+                        is.read(reinterpret_cast<char*>(keys.data()), keys.size() * sizeof(int));
+                        is.read(reinterpret_cast<char*>(values.data()), values.size() * sizeof(float));
+
+                        for (int i = 0; i < numPairs; i++)
+                            _feedBackTraces[v][visibleCellIndex][keys[i]] = values[i];
                     }
         }
     }
@@ -667,6 +685,25 @@ void Layer::writeToStream(std::ostream &os) {
                         int visibleCellIndex = x + y * _visibleLayerDescs[v]._width + c * _visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height;
                             
                         os.write(reinterpret_cast<char*>(_feedBackWeights[v][visibleCellIndex].data()), _feedBackWeights[v][visibleCellIndex].size() * sizeof(float));
+
+                        // Write traces
+                        int numPairs = _feedBackTraces[v][visibleCellIndex].size();
+
+                        os.write(reinterpret_cast<char*>(&numPairs), sizeof(int));
+
+                        std::vector<int> keys(numPairs);
+                        std::vector<float> values(numPairs);
+
+                        int i = 0;
+
+                        for (std::unordered_map<int, float>::const_iterator cit = _feedBackTraces[v][visibleCellIndex].begin(); cit != _feedBackTraces[v][visibleCellIndex].end(); cit++) {
+                            keys[i] = cit->first;
+                            values[i] = cit->second;   
+                            i++;
+                        }
+
+                        os.write(reinterpret_cast<char*>(keys.data()), keys.size() * sizeof(int));
+                        os.write(reinterpret_cast<char*>(values.data()), values.size() * sizeof(float));
                     }
         }
     }
