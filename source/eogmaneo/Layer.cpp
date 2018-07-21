@@ -274,10 +274,7 @@ void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
                     // Trace
                     int wiPrev = (cx - lowerHiddenX) + (cy - lowerHiddenY) * backwardDiam + feedBackIndexPrev * backwardSize;
 
-                    if (_feedBackTraces[v][visibleCellIndexPredPrev].find(wiPrev) != _feedBackTraces[v][visibleCellIndexPredPrev].end())
-                        _feedBackTraces[v][visibleCellIndexPredPrev][wiPrev] += 1.0f;
-                    else
-                        _feedBackTraces[v][visibleCellIndexPredPrev][wiPrev] = 1.0f;
+                    _feedBackTraces[v][visibleCellIndexPredPrev][wiPrev] = 1.0f;
                 }
 
                 int hiddenIndex = _hiddenStates[hiddenColumnIndex];
@@ -297,10 +294,7 @@ void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
                 // Trace
                 int wiPrev = (cx - lowerHiddenX) + (cy - lowerHiddenY) * backwardDiam + hiddenIndexPrev * backwardSize + backwardFieldSize;
 
-                if (_feedBackTraces[v][visibleCellIndexPredPrev].find(wiPrev) != _feedBackTraces[v][visibleCellIndexPredPrev].end())
-                    _feedBackTraces[v][visibleCellIndexPredPrev][wiPrev] += 1.0f;
-                else
-                    _feedBackTraces[v][visibleCellIndexPredPrev][wiPrev] = 1.0f;
+                _feedBackTraces[v][visibleCellIndexPredPrev][wiPrev] = 1.0f;
             }
         }
 
