@@ -186,10 +186,10 @@ namespace eogmaneo {
         */
         float _gamma;
 
-        /*!
-        \brief Exploration rate.
-        */
-        float _epsilon;
+        // /*!
+        // \brief Exploration rate.
+        // */
+        // float _epsilon;
 
         /*!
         \brief Trace decay.
@@ -210,7 +210,7 @@ namespace eogmaneo {
         \brief Initialize defaults.
         */
         Layer()
-        : _alphaFF(1.0f), _alphaL(1.0f), _beta(0.01f), _gamma(0.95f), _epsilon(0.01f), _traceDecay(0.95f), _minTrace(0.01f), _codeIters(4)
+        : _alphaFF(1.0f), _alphaL(1.0f), _beta(0.01f), _gamma(0.95f), /*_epsilon(0.01f),*/ _traceDecay(0.95f), _minTrace(0.01f), _codeIters(4)
         {}
 
         /*!
