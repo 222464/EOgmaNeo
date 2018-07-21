@@ -99,16 +99,6 @@ namespace eogmaneo {
 	};
 
     /*!
-    \brief Replay sample.
-    */
-    struct ReplaySample {
-        std::vector<int> _hiddenStates;
-        std::vector<int> _feedBack;
-        std::vector<std::vector<int> > _inputs;
-        float _reward;
-    };
-
-    /*!
     \brief A layer in the hierarchy.
     */
     class Layer {
@@ -124,10 +114,12 @@ namespace eogmaneo {
         
         std::vector<std::vector<std::vector<float>>> _feedForwardWeights;
         std::vector<std::vector<std::vector<float>>> _feedBackWeights;
+        std::vector<std::vector<std::unordered_map<int, float>>> _feedBackTraces;
 
         std::vector<VisibleLayerDesc> _visibleLayerDescs;
 
         std::vector<std::vector<int>> _predictions;
+        std::vector<std::vector<float>> _predictionActivations;
         
         std::vector<std::vector<int>> _inputs;
         std::vector<std::vector<int>> _inputsPrev;
@@ -139,13 +131,14 @@ namespace eogmaneo {
         std::vector<std::vector<float>> _reconCountsActLearn;
         
         std::vector<int> _feedBack;
+        std::vector<int> _feedBackPrev;
 
         bool _learn;
 
         int _codeIter;
         
-        std::vector<ReplaySample> _replaySamples;
-  
+        float _reward;
+
         void columnForward(int ci);
         void columnBackward(int ci, int v, std::mt19937 &rng);
 
@@ -172,25 +165,30 @@ namespace eogmaneo {
         float _gamma;
 
         /*!
-        \brief Sparse coding iterations.
+        \brief Exploration rate.
+        */
+        float _epsilon;
+
+        /*!
+        \brief Trace decay.
+        */
+        float _traceDecay;
+
+        /*!
+        \brief Minimum trace magnitude.
+        */
+        float _minTrace;
+
+        /*!
+        \brief Number of coding iterations.
         */
         int _codeIters;
-
-        /*!
-        \brief Maximum number of replay samples.
-        */
-        int _maxReplaySamples;
-
-        /*!
-        \brief Number of replay iterations.
-        */
-        int _replayIters;
 
         /*!
         \brief Initialize defaults.
         */
         Layer()
-        : _alpha(0.01f), _beta(0.001f), _gamma(0.99f), _codeIters(2), _maxReplaySamples(64), _replayIters(32)
+        : _alpha(0.01f), _beta(0.001f), _gamma(0.99f), _epsilon(0.01f), _traceDecay(0.95f), _minTrace(0.01f), _codeIters(4)
         {}
 
         /*!
