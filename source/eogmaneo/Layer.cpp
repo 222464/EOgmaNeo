@@ -201,7 +201,7 @@ void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
     std::vector<float> columnActivations(visibleColumnSize, 0.0f);
     float count = 0.0f;
 
-    int visibleCellIndexPredPrev = ci + _predictions[v][ci] * visibleWidth * visibleHeight;
+    int visibleCellIndexPredPrev = ci + _inputs[v][ci] * visibleWidth * visibleHeight;
 
     for (int dcx = -backwardRadius; dcx <= backwardRadius; dcx++)
         for (int dcy = -backwardRadius; dcy <= backwardRadius; dcy++) {
@@ -229,7 +229,10 @@ void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
                     // Trace
                     int wiPrev = (cx - lowerHiddenX) + (cy - lowerHiddenY) * backwardDiam + feedBackIndexPrev * backwardSize;
 
-                    _feedBackTraces[v][visibleCellIndexPredPrev][wiPrev] = 1.0f;
+                    if (_feedBackTraces[v][visibleCellIndexPredPrev].find(wiPrev) != _feedBackTraces[v][visibleCellIndexPredPrev].end())
+                        _feedBackTraces[v][visibleCellIndexPredPrev][wiPrev] += 1.0f;
+                    else
+                        _feedBackTraces[v][visibleCellIndexPredPrev][wiPrev] = 1.0f;
                 }
 
                 int hiddenIndex = _hiddenStates[hiddenColumnIndex];
@@ -249,7 +252,10 @@ void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
                 // Trace
                 int wiPrev = (cx - lowerHiddenX) + (cy - lowerHiddenY) * backwardDiam + hiddenIndexPrev * backwardSize + backwardFieldSize;
 
-                _feedBackTraces[v][visibleCellIndexPredPrev][wiPrev] = 1.0f;
+                if (_feedBackTraces[v][visibleCellIndexPredPrev].find(wiPrev) != _feedBackTraces[v][visibleCellIndexPredPrev].end())
+                    _feedBackTraces[v][visibleCellIndexPredPrev][wiPrev] += 1.0f;
+                else
+                    _feedBackTraces[v][visibleCellIndexPredPrev][wiPrev] = 1.0f;
             }
         }
 
@@ -264,15 +270,16 @@ void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
             predIndex = c;
     }
 
-    std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
+    // std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
 
-    if (dist01(rng) < _epsilon) {
-        std::uniform_int_distribution<int> columnDist(0, visibleColumnSize - 1);
+    // if (dist01(rng) < _epsilon) {
+    //     std::uniform_int_distribution<int> columnDist(0, visibleColumnSize - 1);
 
-        _predictions[v][ci] = columnDist(rng);
-    }
-    else
-        _predictions[v][ci] = predIndex;
+    //     _predictions[v][ci] = columnDist(rng);
+    // }
+    // else
+    //     _predictions[v][ci] = predIndex;
+    _predictions[v][ci] = predIndex;
 
     float tdError = _reward + _gamma * columnActivations[_predictions[v][ci]] - _predictionActivations[v][ci];
 
