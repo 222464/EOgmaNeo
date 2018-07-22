@@ -335,20 +335,6 @@ void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
             else
                 it++;
         }
-
-        if (!_feedBack.empty() && !_feedBackPrev.empty()) {
-            for (std::unordered_map<int, float>::iterator it = _feedBackTraces[v][visibleCellIndex].begin(); it != _feedBackTraces[v][visibleCellIndex].end();) {
-                _feedBackWeights[v][visibleCellIndex][it->first] += _beta * tdError * it->second;
-
-                it->second *= _traceDecay;
-
-                if (it->second < _minTrace) {
-                    it = _feedBackTraces[v][visibleCellIndex].erase(it);
-                }
-                else
-                    it++;
-            }
-        }
     }
 }
 
@@ -515,7 +501,6 @@ void Layer::readFromStream(std::istream &is) {
     is.read(reinterpret_cast<char*>(&_alphaL), sizeof(float));
     is.read(reinterpret_cast<char*>(&_beta), sizeof(float));
     is.read(reinterpret_cast<char*>(&_gamma), sizeof(float));
-    //is.read(reinterpret_cast<char*>(&_epsilon), sizeof(float));
     is.read(reinterpret_cast<char*>(&_traceDecay), sizeof(float));
     is.read(reinterpret_cast<char*>(&_minTrace), sizeof(float));
     is.read(reinterpret_cast<char*>(&_codeIters), sizeof(int));
@@ -651,7 +636,6 @@ void Layer::writeToStream(std::ostream &os) {
     os.write(reinterpret_cast<char*>(&_alphaL), sizeof(float));
     os.write(reinterpret_cast<char*>(&_beta), sizeof(float));
     os.write(reinterpret_cast<char*>(&_gamma), sizeof(float));
-    //os.write(reinterpret_cast<char*>(&_epsilon), sizeof(float));
     os.write(reinterpret_cast<char*>(&_traceDecay), sizeof(float));
     os.write(reinterpret_cast<char*>(&_minTrace), sizeof(float));
     os.write(reinterpret_cast<char*>(&_codeIters), sizeof(int));
