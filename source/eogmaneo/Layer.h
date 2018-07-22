@@ -120,7 +120,6 @@ namespace eogmaneo {
         std::vector<VisibleLayerDesc> _visibleLayerDescs;
 
         std::vector<std::vector<int>> _predictions;
-        std::vector<std::vector<float>> _predictionActivations;
         
         std::vector<std::vector<int>> _inputs;
         std::vector<std::vector<int>> _inputsPrev;
@@ -166,11 +165,6 @@ namespace eogmaneo {
         float _gamma;
 
         /*!
-        \brief Exploration rate.
-        */
-        float _epsilon;
-
-        /*!
         \brief Trace decay.
         */
         float _traceDecay;
@@ -189,7 +183,7 @@ namespace eogmaneo {
         \brief Initialize defaults.
         */
         Layer()
-        : _alpha(0.01f), _beta(0.001f), _gamma(0.99f), _epsilon(0.01f), _traceDecay(0.95f), _minTrace(0.01f), _codeIters(4)
+        : _alpha(0.01f), _beta(0.001f), _gamma(0.99f), _traceDecay(0.95f), _minTrace(0.01f), _codeIters(4)
         {}
 
         /*!
