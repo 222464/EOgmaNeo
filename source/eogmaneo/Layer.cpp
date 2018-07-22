@@ -244,9 +244,10 @@ void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
     int lowerHiddenY = hiddenCenterY - backwardRadius;
 
     std::vector<float> columnActivations(visibleColumnSize, 0.0f);
+    float columnActivationPrev = 0.0f;
     float count = 0.0f;
 
-    int visibleCellIndexPredPrev = ci + _inputs[v][ci] * visibleWidth * visibleHeight;
+    int visibleCellIndexPrev = ci + _inputs[v][ci] * visibleWidth * visibleHeight;
 
     for (int dcx = -backwardRadius; dcx <= backwardRadius; dcx++)
         for (int dcy = -backwardRadius; dcy <= backwardRadius; dcy++) {
@@ -274,7 +275,9 @@ void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
                     // Trace
                     int wiPrev = (cx - lowerHiddenX) + (cy - lowerHiddenY) * backwardDiam + feedBackIndexPrev * backwardSize;
 
-                    _feedBackTraces[v][visibleCellIndexPredPrev][wiPrev] = 1.0f;
+                    _feedBackTraces[v][visibleCellIndexPrev][wiPrev] = 1.0f;
+
+                    columnActivationPrev += _feedBackWeights[v][visibleCellIndexPrev][wiPrev];
                 }
 
                 int hiddenIndex = _hiddenStates[hiddenColumnIndex];
@@ -294,11 +297,15 @@ void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
                 // Trace
                 int wiPrev = (cx - lowerHiddenX) + (cy - lowerHiddenY) * backwardDiam + hiddenIndexPrev * backwardSize + backwardFieldSize;
 
-                _feedBackTraces[v][visibleCellIndexPredPrev][wiPrev] = 1.0f;
+                _feedBackTraces[v][visibleCellIndexPrev][wiPrev] = 1.0f;
+
+                columnActivationPrev += _feedBackWeights[v][visibleCellIndexPrev][wiPrev];
             }
         }
 
     float rescale = 1.0f / std::max(1.0f, count);
+
+    columnActivationPrev *= rescale;
 
     int predIndex = 0;
 
@@ -309,20 +316,9 @@ void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
             predIndex = c;
     }
 
-    // std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
-
-    // if (dist01(rng) < _epsilon) {
-    //     std::uniform_int_distribution<int> columnDist(0, visibleColumnSize - 1);
-
-    //     _predictions[v][ci] = columnDist(rng);
-    // }
-    // else
-    //     _predictions[v][ci] = predIndex;
     _predictions[v][ci] = predIndex;
 
-    float tdError = _reward + _gamma * columnActivations[_predictions[v][ci]] - _predictionActivations[v][ci];
-
-    _predictionActivations[v][ci] = columnActivations[_predictions[v][ci]];
+    float tdError = _reward + _gamma * columnActivations[_predictions[v][ci]] - columnActivationPrev;
 
      // Update traces
     for (int c = 0; c < visibleColumnSize; c++) {
@@ -371,7 +367,6 @@ void Layer::create(int hiddenWidth, int hiddenHeight, int columnSize, int latera
     _feedBackTraces.resize(_visibleLayerDescs.size());
 
     _inputs.resize(_visibleLayerDescs.size());
-    _predictionActivations.resize(_visibleLayerDescs.size());
     
     _hiddenStates.resize(_hiddenWidth * _hiddenHeight, 0);
     
@@ -382,7 +377,6 @@ void Layer::create(int hiddenWidth, int hiddenHeight, int columnSize, int latera
 
     for (int v = 0; v < _visibleLayerDescs.size(); v++) {
         _inputs[v].resize(_visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height, 0);
-        _predictionActivations[v].resize(_inputs[v].size(), 0.0f);
 
         int forwardVecSize = _visibleLayerDescs[v]._forwardRadius * 2 + 1;
 
@@ -537,7 +531,6 @@ void Layer::readFromStream(std::istream &is) {
     _inputs.resize(_visibleLayerDescs.size());
     _inputsPrev.resize(_visibleLayerDescs.size());
     _predictions.resize(_visibleLayerDescs.size());
-    _predictionActivations.resize(_visibleLayerDescs.size());
 
     _feedForwardWeights.resize(_visibleLayerDescs.size());
     _feedBackWeights.resize(_visibleLayerDescs.size());
@@ -572,13 +565,10 @@ void Layer::readFromStream(std::istream &is) {
         _inputs[v].resize(_visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height);
         _inputsPrev[v].resize(_inputs[v].size());
         _predictions[v].resize(_inputs[v].size());
-        _predictionActivations.resize(_inputs[v].size() * _visibleLayerDescs[v]._columnSize);
         
         is.read(reinterpret_cast<char*>(_inputs[v].data()), _inputs[v].size() * sizeof(int));
         is.read(reinterpret_cast<char*>(_inputsPrev[v].data()), _inputsPrev[v].size() * sizeof(int));
         is.read(reinterpret_cast<char*>(_predictions[v].data()), _predictions[v].size() * sizeof(int));
-
-        is.read(reinterpret_cast<char*>(_predictionActivations[v].data()), _predictionActivations[v].size() * sizeof(float));
 
         // Forward weights
         int forwardVecSize = _visibleLayerDescs[v]._forwardRadius * 2 + 1;
@@ -695,8 +685,6 @@ void Layer::writeToStream(std::ostream &os) {
         os.write(reinterpret_cast<char*>(_inputs[v].data()), _inputs[v].size() * sizeof(int));
         os.write(reinterpret_cast<char*>(_inputsPrev[v].data()), _inputsPrev[v].size() * sizeof(int));
         os.write(reinterpret_cast<char*>(_predictions[v].data()), _predictions[v].size() * sizeof(int));
-        
-        os.write(reinterpret_cast<char*>(_predictionActivations[v].data()), _predictionActivations[v].size() * sizeof(float));
 
         // Forward weights
         for (int x = 0; x < _hiddenWidth; x++)
