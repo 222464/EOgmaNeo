@@ -76,11 +76,11 @@ void Layer::columnForward(int ci) {
 
                             int visibleCellIndex = visibleColumnIndex + c * _visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height;
 
-                            float recon = sigmoid(_reconsActLearn[v][visibleCellIndex] / std::max(1.0f, _reconCountsActLearn[v][visibleCellIndex]));
+                            float recon = _reconsActLearn[v][visibleCellIndex] / std::max(1.0f, _reconCountsActLearn[v][visibleCellIndex]);
 
                             float target = (c == inputIndexPrev ? 1.0f : 0.0f);
 
-                            _feedForwardWeights[v][hiddenCellIndexPrev][wi] += rate * (target - recon);
+                            _feedForwardWeights[v][hiddenCellIndexPrev][wi] = std::max(0.0f, _feedForwardWeights[v][hiddenCellIndexPrev][wi] + rate * (target - recon));
                         }
                     }
 
@@ -99,12 +99,12 @@ void Layer::columnForward(int ci) {
 
                         int visibleCellIndex = visibleColumnIndex + inputIndex * _visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height;
 
-                        float recon = sigmoid(_reconsActLearn[v][visibleCellIndex] / std::max(1.0f, _reconCountsActLearn[v][visibleCellIndex]));
+                        float recon = _reconsActLearn[v][visibleCellIndex] / std::max(1.0f, _reconCountsActLearn[v][visibleCellIndex]);
 
                         for (int c = 0; c < _columnSize; c++) {
                             int hiddenCellIndex = ci + c * _hiddenWidth * _hiddenHeight;
                             
-                            columnActivations[c] += _feedForwardWeights[v][hiddenCellIndex][wi] * (1.0f - recon);
+                            columnActivations[c] += std::max(0.0f, _feedForwardWeights[v][hiddenCellIndex][wi] - recon);
                         }
                     }
                 }
@@ -199,7 +199,7 @@ void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
     int lowerHiddenY = hiddenCenterY - backwardRadius;
 
     std::vector<float> columnActivations(visibleColumnSize, 0.0f);
-    float columnActivationsPrev = 0.0f;
+    float columnActivationPrev = 0.0f;
     float count = 0.0f;
 
     int visibleCellIndexPrev = ci + _inputs[v][ci] * visibleWidth * visibleHeight;
@@ -230,7 +230,7 @@ void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
                     // Trace
                     int wiPrev = (cx - lowerHiddenX) + (cy - lowerHiddenY) * backwardDiam + feedBackIndexPrev * backwardSize;
 
-                    columnActivationsPrev += _feedBackWeights[v][visibleCellIndexPrev][wiPrev];
+                    columnActivationPrev += _feedBackWeights[v][visibleCellIndexPrev][wiPrev];
 
                     _feedBackTraces[v][visibleCellIndexPrev][wiPrev] = 1.0f;
                 }
@@ -252,7 +252,7 @@ void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
                 // Trace
                 int wiPrev = (cx - lowerHiddenX) + (cy - lowerHiddenY) * backwardDiam + hiddenIndexPrev * backwardSize + backwardFieldSize;
                 
-                columnActivationsPrev += _feedBackWeights[v][visibleCellIndexPrev][wiPrev];
+                columnActivationPrev += _feedBackWeights[v][visibleCellIndexPrev][wiPrev];
 
                 _feedBackTraces[v][visibleCellIndexPrev][wiPrev] = 1.0f;
             }
@@ -260,7 +260,7 @@ void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
 
     float rescale = 1.0f / std::max(1.0f, count);
 
-    columnActivationsPrev *= rescale;
+    columnActivationPrev *= rescale;
 
     int predIndex = 0;
 
@@ -273,7 +273,7 @@ void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
 
     _predictions[v][ci] = predIndex;
 
-    float tdError = _reward + _gamma * columnActivations[_predictions[v][ci]] - columnActivationsPrev;
+    float tdError = _reward + _gamma * columnActivations[_predictions[v][ci]] - columnActivationPrev;
 
      // Update traces
     for (int c = 0; c < visibleColumnSize; c++) {
