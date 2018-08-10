@@ -49,17 +49,20 @@ void EventEncoder::create(int inputWidth, int inputHeight, int hiddenWidth, int 
 
     int weightsPerUnit = diam * diam * _columnSize;
 
-	int units = _inputWidth * _inputHeight;
+	int inUnits = _inputWidth * _inputHeight;
 
-    _weights.resize(units * weightsPerUnit);
+    _weights.resize(inUnits * weightsPerUnit);
 
     for (int w = 0; w < _weights.size(); w++)
         _weights[w] = weightDist(rng);
 
-    _biases.resize(units, 0.0f);
-
     _hiddenStates.resize(_hiddenWidth * _hiddenHeight, 0);
-    _hiddenActivations.resize(units, 0);
+    
+    int hUnits = _hiddenStates.size() * _columnSize;
+
+    _biases.resize(hUnits, 0.0f);
+
+    _hiddenActivations.resize(hUnits, 0);
 }
 
 void EventEncoder::addEvents(ComputeSystem &cs, const std::vector<EventEncoderEvent> &events) {
