@@ -24,6 +24,7 @@
 #include "KMeansEncoder.h"
 #include "ImageEncoder.h"
 #include "GaborEncoder.h"
+#include "EventEncoder.h"
 #endif
 %}
 
@@ -48,7 +49,7 @@
 %template(Std2DVecf) std::vector<std::vector<float> >;
 %template(StdVecb) std::vector<bool>;
 
-%template(StdVecEvent) std::vector<EventEncoderEvent>;
+%template(StdVecEvent) std::vector<eogmaneo::EventEncoderEvent>;
 
 %ignore eogmaneo::LayerForwardWorkItem;
 %ignore eogmaneo::LayerBackwardWorkItem;
@@ -60,4 +61,5 @@
 %include "KMeansEncoder.h"
 %include "ImageEncoder.h"
 %include "GaborEncoder.h"
+%include "EventEncoder.h"
 #endif
