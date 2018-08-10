@@ -48,6 +48,8 @@
 %template(Std2DVecf) std::vector<std::vector<float> >;
 %template(StdVecb) std::vector<bool>;
 
+%template(StdVecEvent) std::vector<EventEncoderEvent>;
+
 %ignore eogmaneo::LayerForwardWorkItem;
 %ignore eogmaneo::LayerBackwardWorkItem;
 

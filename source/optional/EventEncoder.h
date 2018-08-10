@@ -13,18 +13,33 @@
 #include <random>
 
 namespace eogmaneo {
-	class ImageEncoder;
+	class EventEncoder;
+
+    /*!
+    \brief A single Event.
+    */
+    struct EventEncoderEvent {
+        /*!
+        \brief Raveled index of 2D position.
+        */
+        int _index;
+
+        /*!
+        \brief Whether is ON event (true) or OFF event (false).
+        */
+        bool _polarity;
+    };
 	
     /*!
-    \brief Image encoder work item. Internal use only.
+    \brief Event encoder work item. Internal use only.
     */
-	class ImageEncoderActivateWorkItem : public WorkItem {
+	class EventEncoderActivateWorkItem : public WorkItem {
 	public:
-		ImageEncoder* _pEncoder;
+		EventEncoder* _pEncoder;
 
-		int _cx, _cy;
+        std::vector<EventEncoderEvent> _events;
 
-		ImageEncoderActivateWorkItem()
+		EventEncoderActivateWorkItem()
 			: _pEncoder(nullptr)
 		{}
 
@@ -32,15 +47,15 @@ namespace eogmaneo {
 	};
 	
     /*!
-    \brief Image encoder work item. Internal use only.
+    \brief Event encoder work item. Internal use only.
     */
-	class ImageEncoderReconstructWorkItem : public WorkItem {
+	class EventEncoderInhibitWorkItem : public WorkItem {
 	public:
-		ImageEncoder* _pEncoder;
+		EventEncoder* _pEncoder;
 
 		int _cx, _cy;
 
-		ImageEncoderReconstructWorkItem()
+		EventEncoderInhibitWorkItem()
 			: _pEncoder(nullptr)
 		{}
 
@@ -48,18 +63,17 @@ namespace eogmaneo {
 	};
 
     /*!
-    \brief Image learn work item. Internal use only.
+    \brief Event learn work item. Internal use only.
     */
-    class ImageEncoderLearnWorkItem : public WorkItem {
+    class EventEncoderLearnWorkItem : public WorkItem {
     public:
-        ImageEncoder* _pEncoder;
+        EventEncoder* _pEncoder;
 
         int _cx, _cy;
 
         float _alpha;
-        float _beta;
 
-        ImageEncoderLearnWorkItem()
+        EventEncoderLearnWorkItem()
             : _pEncoder(nullptr)
         {}
 
@@ -69,7 +83,7 @@ namespace eogmaneo {
     /*!
     \brief Encoders values to a columnar SDR through random transformation.
     */
-    class ImageEncoder {
+    class EventEncoder {
     private:
         int _inputWidth, _inputHeight;
         int _hiddenWidth, _hiddenHeight;
@@ -77,20 +91,14 @@ namespace eogmaneo {
         int _radius;
 
         std::vector<int> _hiddenStates;
-        std::vector<int> _reconHiddenStates;
-        std::vector<float> _hiddenActivations;
+        std::vector<int> _hiddenActivations;
 
-        std::vector<float> _weightsFF;
-        std::vector<float> _weightsR;
+        std::vector<char> _weights;
         std::vector<float> _biases;
 
-		void activate(int cx, int cy);
-		void reconstruct(int cx, int cy);
-        void learn(int cx, int cy, float alpha, float beta);
-
-		std::vector<float> _inputs;
-		std::vector<float> _recons;
-		std::vector<float> _counts;
+		void activate(const std::vector<EventEncoderEvent> &events);
+		void inhibit(int cx, int cy);
+        void learn(int cx, int cy, float alpha);
 		
     public:
         /*!
@@ -107,28 +115,25 @@ namespace eogmaneo {
             unsigned long seed);
 
         /*!
-        \brief Activate the encoder from an input (compute hidden states, perform encoding).
+        \brief Add events. Computes effects of the event passively, only guaranteed when inhibit is called.
         \param cs compute system to be used.
-        \param input input vector/image.
-        \return hidden SDR
+        \param events events to compute.
         */
-        const std::vector<int> &activate(ComputeSystem &cs, const std::vector<float> &inputs);
+        void addEvents(ComputeSystem &cs, const std::vector<EventEncoderEvent> &events);
 
         /*!
-        \brief Reconstruction (reversal).
+        \brief Inhibit the encoder (retrieve SDR formed by events).
         \param cs compute system to be used.
-        \param reconHiddenStates hidden states to reconstruct.
-        \return reconstruction
+        \return hidden SDR
         */
-        const std::vector<float> &reconstruct(ComputeSystem &cs, const std::vector<int> &reconHiddenStates);
+        const std::vector<int> &inhibit(ComputeSystem &cs);
 
         /*!
         \brief Learning.
         \param cs compute system to be used.
         \param alpha bias learning rate.
-        \param beta reconstruction learning rate.
         */
-        void learn(ComputeSystem &cs, float alpha, float beta);
+        void learn(ComputeSystem &cs, float alpha);
 
         //!@{
         /*!
@@ -177,15 +182,8 @@ namespace eogmaneo {
             return _hiddenStates;
         }
 
-        /*!
-        \brief Get lastly computed reconstuction.
-        */
-        const std::vector<float> &getRecons() const {
-            return _recons;
-        }
-		
-		friend class ImageEncoderActivateWorkItem;
-		friend class ImageEncoderReconstructWorkItem;
-        friend class ImageEncoderLearnWorkItem;
+		friend class EventEncoderActivateWorkItem;
+		friend class EventEncoderInhibitWorkItem;
+        friend class EventEncoderLearnWorkItem;
     };
 }

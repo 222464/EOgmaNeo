@@ -40,5 +40,6 @@ namespace eogmaneo {
 		friend class KMeansEncoder;
 		friend class ImageEncoder;
 		friend class GaborEncoder;
+		friend class EventEncoder;
     };
 }
