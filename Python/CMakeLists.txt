@@ -56,6 +56,9 @@ if (BUILD_PREENCODERS)
 
   file(GLOB_RECURSE EOGMANEO_GABORENCODER_SRC "../source/optional/GaborEncoder.*")
   list(APPEND EOGMANEO_SRC ${EOGMANEO_GABORENCODER_SRC})
+
+  file(GLOB_RECURSE EOGMANEO_EVENTENCODER_SRC "../source/optional/EventEncoder.*")
+  list(APPEND EOGMANEO_SRC ${EOGMANEO_EVENTENCODER_SRC})
 endif()
 
 add_library(EOgmaNeo ${EOGMANEO_SRC})
