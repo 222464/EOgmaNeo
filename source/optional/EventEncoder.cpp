@@ -171,6 +171,6 @@ void EventEncoder::learn(int cx, int cy, float alpha) {
     for (int c = 0; c < _columnSize; c++) {
         int ui = cx + cy * _hiddenWidth + c * _hiddenWidth * _hiddenHeight;
 
-        _biases[ui] += -alpha * _hiddenActivations[ui];
+        _biases[ui] += alpha * (-_hiddenActivations[ui] - _biases[ui]);
     }
 }
