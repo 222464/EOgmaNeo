@@ -38,10 +38,6 @@ void Layer::columnForward(int ci) {
     int cellRangeLow = std::max(0, hiddenStatePrev - 1);
     int cellRangeHigh = std::min(_columnSize - 1, hiddenStatePrev + 1);
 
-    std::vector<float> rangeWeightSums(cellRangeHigh - cellRangeLow + 1, 0.0f);
-
-    float weightSum = 0.0f;
-
     std::vector<float> columnActivations(_columnSize, 0.0f);
 
     // Activate feed forward
@@ -86,8 +82,6 @@ void Layer::columnForward(int ci) {
                                     float target = (c == inputIndexPrev ? 1.0f : 0.0f);
 
                                     _feedForwardWeights[v][hiddenCellIndex][wi] += _alpha * _hiddenRates[hiddenCellIndex] * (target - _feedForwardWeights[v][hiddenCellIndex][wi]);
-
-                                    rangeWeightSums[d - cellRangeLow] += _feedForwardWeights[v][hiddenCellIndex][wi];
                                 }
                             }
                         }
@@ -98,8 +92,9 @@ void Layer::columnForward(int ci) {
 
                     for (int c = 0; c < _columnSize; c++) {
                         int hiddenCellIndex = ci + c * _hiddenWidth * _hiddenHeight;
-                        
-                        columnActivations[c] += std::max(0.0f, _feedForwardWeights[v][hiddenCellIndex][wi]);
+
+                        if (_feedForwardWeights[v][hiddenCellIndex][wi] >= 0.0f)
+                            columnActivations[c] += _feedForwardWeights[v][hiddenCellIndex][wi];
                     }
                 }
             }
@@ -109,8 +104,6 @@ void Layer::columnForward(int ci) {
         for (int d = cellRangeLow; d <= cellRangeHigh; d++) {
             int hiddenCellIndex = ci + d * _hiddenWidth * _hiddenHeight;
                         
-            _hiddenWeightSums[hiddenCellIndex] = rangeWeightSums[d - cellRangeLow];
-
             _hiddenRates[hiddenCellIndex] *= _rateDecay;
         }
     }
@@ -118,11 +111,7 @@ void Layer::columnForward(int ci) {
 	// Find max element
 	int maxCellIndex = 0;
 
-	for (int c = 0; c < _columnSize; c++) {
-		int hiddenCellIndex = ci + c * _hiddenWidth * _hiddenHeight;
-
-        //columnActivations[c] /= std::max(0.0001f, _hiddenWeightSums[hiddenCellIndex]);
-
+	for (int c = 1; c < _columnSize; c++) {
         if (columnActivations[c] > columnActivations[maxCellIndex])
 			maxCellIndex = c;
 	}
@@ -268,8 +257,7 @@ void Layer::create(int hiddenWidth, int hiddenHeight, int columnSize, const std:
     _inputs.resize(_visibleLayerDescs.size());
 
     _hiddenStates.resize(_hiddenWidth * _hiddenHeight, 0);
-    _hiddenWeightSums.resize(_hiddenStates.size() * _columnSize, 0.0f);
-    _hiddenRates.resize(_hiddenWeightSums.size(), 1.0f);
+    _hiddenRates.resize(_hiddenStates.size() * _columnSize, 1.0f);
 
     std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
     std::uniform_real_distribution<float> initWeightDistHigh(0.0f, 1.0f);
@@ -402,8 +390,7 @@ void Layer::readFromStream(std::istream &is) {
     _hiddenStatesPrev.resize(_hiddenStates.size());
     _feedBack.resize(_hiddenStates.size());
     _feedBackPrev.resize(_hiddenStates.size());
-    _hiddenWeightSums.resize(_hiddenStates.size() * _columnSize);
-    _hiddenRates.resize(_hiddenWeightSums.size());
+    _hiddenRates.resize(_hiddenStates.size() * _columnSize);
 
     is.read(reinterpret_cast<char*>(_hiddenStates.data()), _hiddenStates.size() * sizeof(int));
     is.read(reinterpret_cast<char*>(_hiddenStatesPrev.data()), _hiddenStatesPrev.size() * sizeof(int));
@@ -417,8 +404,6 @@ void Layer::readFromStream(std::istream &is) {
     if (_feedBackPrev.front() == -1)
         _feedBackPrev.clear();
 
-    is.read(reinterpret_cast<char*>(_hiddenWeightSums.data()), _hiddenWeightSums.size() * sizeof(float));
-    
     is.read(reinterpret_cast<char*>(_hiddenRates.data()), _hiddenRates.size() * sizeof(float));
 
     for (int v = 0; v < _visibleLayerDescs.size(); v++) {
@@ -502,8 +487,6 @@ void Layer::writeToStream(std::ostream &os) {
 
     os.write(reinterpret_cast<char*>(writeFeedBack.data()), writeFeedBack.size() * sizeof(int));
     os.write(reinterpret_cast<char*>(writeFeedBackPrev.data()), writeFeedBackPrev.size() * sizeof(int));
-    
-    os.write(reinterpret_cast<char*>(_hiddenWeightSums.data()), _hiddenWeightSums.size() * sizeof(float));
 
     os.write(reinterpret_cast<char*>(_hiddenRates.data()), _hiddenRates.size() * sizeof(float));
     

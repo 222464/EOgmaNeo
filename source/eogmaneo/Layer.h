@@ -109,7 +109,6 @@ namespace eogmaneo {
         std::vector<int> _hiddenStatesPrev;
 
         std::vector<float> _hiddenRates;
-        std::vector<float> _hiddenWeightSums;
         
         std::vector<std::vector<std::vector<float>>> _feedForwardWeights;
         std::vector<std::vector<std::vector<float>>> _feedBackWeights;
