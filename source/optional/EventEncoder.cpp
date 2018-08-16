@@ -16,15 +16,15 @@
 
 using namespace eogmaneo;
 
-void EventEncoderActivateWorkItem::run(size_t threadIndex) {
+void EventEncoderActivateWorkItem::run() {
 	_pEncoder->activate(_events);
 }
 
-void EventEncoderInhibitWorkItem::run(size_t threadIndex) {
+void EventEncoderInhibitWorkItem::run() {
 	_pEncoder->inhibit(_cx, _cy);
 }
 
-void EventEncoderLearnWorkItem::run(size_t threadIndex) {
+void EventEncoderLearnWorkItem::run() {
     _pEncoder->learn(_cx, _cy, _alpha);
 }
 

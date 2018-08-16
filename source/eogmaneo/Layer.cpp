@@ -21,11 +21,11 @@ float eogmaneo::sigmoid(float x) {
     return 1.0f / (1.0f + std::exp(-x));
 }
 
-void LayerForwardWorkItem::run(size_t threadIndex) {
+void LayerForwardWorkItem::run() {
 	_pLayer->columnForward(_ci);
 }
 
-void LayerBackwardWorkItem::run(size_t threadIndex) {
+void LayerBackwardWorkItem::run() {
 	_pLayer->columnBackward(_ci, _v);
 }
 
@@ -74,11 +74,11 @@ void Layer::columnForward(int ci) {
 
                             int visibleCellIndex = visibleColumnIndex + c * _visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height;
 
-                            float recon = _reconsActLearn[v][visibleCellIndex] / std::max(1.0f, _reconCountsActLearn[v][visibleCellIndex]);
+                            float recon = _reconsActLearn[v][visibleCellIndex];
 
                             float target = c == inputIndexPrev ? 1.0f : 0.0f;
 
-                            _feedForwardWeights[v][hiddenCellIndexPrev][wi] = std::max(0.0f, _feedForwardWeights[v][hiddenCellIndexPrev][wi] + _alpha * (target - recon));
+                            _feedForwardWeights[v][hiddenCellIndexPrev][wi] = std::min(1.0f, std::max(0.0f, _feedForwardWeights[v][hiddenCellIndexPrev][wi] + _alpha * (target - recon)));
                         }
                     }
 
@@ -97,12 +97,12 @@ void Layer::columnForward(int ci) {
 
                         int visibleCellIndex = visibleColumnIndex + inputIndex * _visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height;
 
-                        float recon = _reconsActLearn[v][visibleCellIndex] / std::max(1.0f, _reconCountsActLearn[v][visibleCellIndex]);
+                        float recon = _reconsActLearn[v][visibleCellIndex];
 
                         for (int c = 0; c < _columnSize; c++) {
                             int hiddenCellIndex = ci + c * _hiddenWidth * _hiddenHeight;
                             
-                            columnActivations[c] += std::max(0.0f, _feedForwardWeights[v][hiddenCellIndex][wi] - recon);
+                            columnActivations[c] += _feedForwardWeights[v][hiddenCellIndex][wi] * std::max(0.0f, 1.0f - recon);
                         }
                     }
                 }
@@ -163,7 +163,6 @@ void Layer::columnForward(int ci) {
                         int visibleCellIndex = visibleColumnIndex + c * _visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height;
 
                         _recons[v][visibleCellIndex] += _feedForwardWeights[v][hiddenCellIndex][wi];
-                        _reconCounts[v][visibleCellIndex] += 1.0f;
                     }
                 }
             }
@@ -376,8 +375,6 @@ void Layer::forward(ComputeSystem &cs, const std::vector<std::vector<int>> &inpu
 
         for (int v = 0; v < _visibleLayerDescs.size(); v++)
             _recons[v].resize(_visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height * _visibleLayerDescs[v]._columnSize, 0.0f);
-        
-        _reconCounts = _recons;
 
         for (int ci = 0; ci < _hiddenStates.size(); ci++) {
             std::shared_ptr<LayerForwardWorkItem> item = std::make_shared<LayerForwardWorkItem>();
@@ -391,7 +388,6 @@ void Layer::forward(ComputeSystem &cs, const std::vector<std::vector<int>> &inpu
         cs._pool.wait();
 
         _reconsActLearn = _recons;
-        _reconCountsActLearn = _reconCounts;
     }
 }
 
