@@ -108,7 +108,8 @@ namespace eogmaneo {
         std::vector<int> _hiddenStates;
         std::vector<int> _hiddenStatesPrev;
 
-        std::vector<float> _hiddenActivations;
+        std::vector<float> _hiddenRates;
+        std::vector<float> _hiddenWeightSums;
         
         std::vector<std::vector<std::vector<float>>> _feedForwardWeights;
         std::vector<std::vector<std::vector<float>>> _feedBackWeights;
@@ -119,18 +120,13 @@ namespace eogmaneo {
         
         std::vector<std::vector<int>> _inputs;
         std::vector<std::vector<int>> _inputsPrev;
-
-        std::vector<std::vector<float>> _recons;
-        std::vector<std::vector<float>> _reconCounts;
-
-        std::vector<std::vector<float>> _reconsActLearn;
-        std::vector<std::vector<float>> _reconCountsActLearn;
         
         std::vector<int> _feedBack;
         std::vector<int> _feedBackPrev;
 
         bool _learn;
-        int _codeIter;
+
+        bool _firstIter;
   
         void columnForward(int ci);
         void columnBackward(int ci, int v);
@@ -153,15 +149,15 @@ namespace eogmaneo {
         float _beta;
 
         /*!
-        \brief Number of coding iterations.
+        \brief Column rate decay.
         */
-        int _codeIters;
+        float _rateDecay;
 
         /*!
         \brief Initialize defaults.
         */
         Layer()
-        : _alpha(0.1f), _beta(0.1f), _codeIters(2)
+        : _alpha(0.1f), _beta(0.1f), _rateDecay(0.9f), _firstIter(true)
         {}
 
         /*!
