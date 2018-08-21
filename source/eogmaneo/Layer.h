@@ -171,7 +171,7 @@ namespace eogmaneo {
         \brief Initialize defaults.
         */
         Layer()
-        : _alpha(0.1f), _beta(0.1f), _rateDecay(0.99f), _codeIters(2), _firstStep(true)
+        : _alpha(0.4f), _beta(0.1f), _rateDecay(0.995f), _codeIters(2), _firstStep(true)
         {}
 
         /*!
