@@ -109,6 +109,8 @@ namespace eogmaneo {
         std::vector<int> _hiddenStatesPrev;
 
         std::vector<float> _hiddenRates;
+
+        std::vector<float> _hiddenActivations;
         
         std::vector<std::vector<std::vector<float>>> _feedForwardWeights;
         std::vector<std::vector<std::vector<float>>> _feedBackWeights;
@@ -123,9 +125,17 @@ namespace eogmaneo {
         std::vector<int> _feedBack;
         std::vector<int> _feedBackPrev;
 
+        std::vector<std::vector<float>> _recons;
+        std::vector<std::vector<float>> _reconCounts;
+
+        std::vector<std::vector<float>> _reconsActLearn;
+        std::vector<std::vector<float>> _reconCountsActLearn;
+
         bool _learn;
 
-        bool _firstIter;
+        int _codeIter;
+
+        bool _firstStep;
   
         void columnForward(int ci);
         void columnBackward(int ci, int v);
@@ -153,10 +163,15 @@ namespace eogmaneo {
         float _rateDecay;
 
         /*!
+        \brief Coding iterations.
+        */
+        int _codeIters;
+
+        /*!
         \brief Initialize defaults.
         */
         Layer()
-        : _alpha(0.1f), _beta(0.1f), _rateDecay(0.9f), _firstIter(true)
+        : _alpha(0.1f), _beta(0.1f), _rateDecay(0.99f), _codeIters(2), _firstStep(true)
         {}
 
         /*!
