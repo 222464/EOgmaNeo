@@ -168,6 +168,7 @@ void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
 
     float rescale = 1.0f / std::max(1.0f, count);
 
+    int predIndexPrev = _predictions[v][ci];
     int predIndex = 0;
 
     for (int c = 0; c < visibleColumnSize; c++) {
@@ -177,13 +178,21 @@ void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
             predIndex = c;
     }
 
-    _predictions[v][ci] = predIndex;
+    std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
+
+    if (dist01(rng) < _epsilon) {
+        std::uniform_int_distribution<int> columnDist(0, visibleColumnSize - 1);
+
+        _predictions[v][ci] = columnDist(rng);
+    }
+    else
+        _predictions[v][ci] = predIndex;
 
     float q = _reward + _gamma * columnActivations[predIndex];
 
     float sColumnActivationPrev = 0.0f;
 
-    int updateIndex = _inputs[v][ci];
+    int updateIndex = predIndexPrev;
 
     int visibleCellIndexUpdate = ci + updateIndex * visibleWidth * visibleHeight;
 
@@ -375,6 +384,7 @@ void Layer::readFromStream(std::istream &is) {
     is.read(reinterpret_cast<char*>(&_alpha), sizeof(float));
     is.read(reinterpret_cast<char*>(&_beta), sizeof(float));
     is.read(reinterpret_cast<char*>(&_gamma), sizeof(float));
+    is.read(reinterpret_cast<char*>(&_epsilon), sizeof(float));
 
     int numVisibleLayerDescs;
 
@@ -467,6 +477,7 @@ void Layer::writeToStream(std::ostream &os) {
     os.write(reinterpret_cast<char*>(&_alpha), sizeof(float));
     os.write(reinterpret_cast<char*>(&_beta), sizeof(float));
     os.write(reinterpret_cast<char*>(&_gamma), sizeof(float));
+    os.write(reinterpret_cast<char*>(&_epsilon), sizeof(float));
 
     int numVisibleLayerDescs = _visibleLayerDescs.size();
 
