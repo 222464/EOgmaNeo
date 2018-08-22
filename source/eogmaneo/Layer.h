@@ -47,6 +47,7 @@ namespace eogmaneo {
 
 		int _ci;
         int _v;
+        std::mt19937 _rng;
 
 		LayerBackwardWorkItem()
 			: _pLayer(nullptr)
@@ -96,6 +97,16 @@ namespace eogmaneo {
 		{}
 	};
 
+        /*!
+    \brief History sample.
+    */
+    struct HistorySample {
+        std::vector<int> _hiddenStates;
+        std::vector<int> _feedBack;
+        std::vector<std::vector<int> > _inputs;
+        float _reward;
+    };
+
     /*!
     \brief A layer in the hierarchy.
     */
@@ -136,9 +147,11 @@ namespace eogmaneo {
         int _codeIter;
 
         bool _firstStep;
+
+        std::vector<HistorySample> _historySamples;
   
         void columnForward(int ci);
-        void columnBackward(int ci, int v);
+        void columnBackward(int ci, int v, std::mt19937 &rng);
 
         /*!
         \brief Write to stream
@@ -158,6 +171,11 @@ namespace eogmaneo {
         float _beta;
 
         /*!
+        \brief Discount factor.
+        */
+        float _gamma;
+
+        /*!
         \brief Column rate decay.
         */
         float _rateDecay;
@@ -168,10 +186,15 @@ namespace eogmaneo {
         int _codeIters;
 
         /*!
+        \brief Maximum number of history samples.
+        */
+        int _maxHistorySamples;
+
+        /*!
         \brief Initialize defaults.
         */
         Layer()
-        : _alpha(0.4f), _beta(0.1f), _rateDecay(0.995f), _codeIters(2), _firstStep(true)
+        : _alpha(0.4f), _beta(0.1f), _gamma(0.95f), _rateDecay(0.995f), _codeIters(2), _maxHistorySamples(16), _firstStep(true)
         {}
 
         /*!
@@ -194,9 +217,10 @@ namespace eogmaneo {
         /*!
         \brief Backward activation.
         \param feedBack vector of feedback SDRs in columnar format.
+        \param reward reinforcement signal.
         \param learn whether learning is enabled.
         */
-        void backward(ComputeSystem &cs, const std::vector<int> &feedBack, bool learn);
+        void backward(ComputeSystem &cs, const std::vector<int> &feedBack, float reward, bool learn);
 
         //!@{
         /*!
