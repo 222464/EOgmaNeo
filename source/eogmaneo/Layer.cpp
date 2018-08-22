@@ -240,7 +240,9 @@ void Layer::create(int hiddenWidth, int hiddenHeight, int columnSize, const std:
 
     _hiddenStates.resize(_hiddenWidth * _hiddenHeight, 0);
 
-    std::uniform_real_distribution<float> initWeightDist(-0.001f, 0.001f);
+    std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
+    std::uniform_real_distribution<float> initWeightDistLow(-0.001f, 0.001f);
+    std::uniform_real_distribution<float> initWeightDistHigh(0.0f, 1.0f);
 
     for (int v = 0; v < _visibleLayerDescs.size(); v++) {
         _inputs[v].resize(_visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height, 0);
@@ -252,15 +254,22 @@ void Layer::create(int hiddenWidth, int hiddenHeight, int columnSize, const std:
         _feedForwardWeights[v].resize(_hiddenWidth * _hiddenHeight * _columnSize);
 
         for (int x = 0; x < _hiddenWidth; x++)
-            for (int y = 0; y < _hiddenHeight; y++)
+            for (int y = 0; y < _hiddenHeight; y++) {
+                // Generate pattern mask
+                std::vector<bool> mask(forwardVecSize);
+
+                for (int j = 0; j < forwardVecSize; j++)
+                    mask[j] = dist01(rng) < 0.5f;
+
                 for (int c = 0; c < _columnSize; c++) {
                     int hiddenCellIndex = x + y * _hiddenWidth + c * _hiddenWidth * _hiddenHeight;
 
                     _feedForwardWeights[v][hiddenCellIndex].resize(forwardVecSize);
                     
                     for (int j = 0; j < forwardVecSize; j++)
-                        _feedForwardWeights[v][hiddenCellIndex][j] = 1.0f + initWeightDist(rng);
+                        _feedForwardWeights[v][hiddenCellIndex][j] = mask[j] ? initWeightDistHigh(rng) : 0.0f;
                 }
+            }
 
         if (_visibleLayerDescs[v]._predict) {
             _feedBackWeights[v].resize(_visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height * _visibleLayerDescs[v]._columnSize);
@@ -277,7 +286,7 @@ void Layer::create(int hiddenWidth, int hiddenHeight, int columnSize, const std:
                         _feedBackWeights[v][visibleCellIndex].resize(backwardVecSize);
 
                         for (int j = 0; j < backwardVecSize; j++)
-                            _feedBackWeights[v][visibleCellIndex][j] = initWeightDist(rng);
+                            _feedBackWeights[v][visibleCellIndex][j] = initWeightDistLow(rng);
                     }
         }
     }
