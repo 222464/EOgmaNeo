@@ -82,7 +82,7 @@ void Layer::columnForward(int ci) {
                             for (int d = cellRangeLow; d <= cellRangeHigh; d++) {
                                 int hiddenCellIndex = ci + d * _hiddenWidth * _hiddenHeight;
 
-                                _feedForwardWeights[v][hiddenCellIndex][wi] += _alpha * _hiddenRates[hiddenCellIndex] * (target - recon);
+                                _feedForwardWeights[v][hiddenCellIndex][wi] += _alpha * _hiddenRates[hiddenCellIndex] * (target - _feedForwardWeights[v][hiddenCellIndex][wi]);
                             }
                         }
                     }
@@ -109,7 +109,7 @@ void Layer::columnForward(int ci) {
                         for (int c = 0; c < _columnSize; c++) {
                             int hiddenCellIndex = ci + c * _hiddenWidth * _hiddenHeight;
                             
-                            columnActivations[c] += _feedForwardWeights[v][hiddenCellIndex][wi] * (1.0f - recon);
+                            columnActivations[c] += std::max(0.0f, _feedForwardWeights[v][hiddenCellIndex][wi] - recon);
                         }
                     }
                 }
@@ -332,9 +332,7 @@ void Layer::create(int hiddenWidth, int hiddenHeight, int columnSize, const std:
     _hiddenRates.resize(_hiddenStates.size() * _columnSize, 1.0f);
     _hiddenActivations.resize(_hiddenRates.size(), 0.0f);
 
-    std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
-    std::uniform_real_distribution<float> initWeightDistHigh(0.0f, 1.0f);
-    std::uniform_real_distribution<float> initWeightDistLow(-0.001f, 0.001f);
+    std::uniform_real_distribution<float> initWeightDist(-0.001f, 0.001f);
 
     for (int v = 0; v < _visibleLayerDescs.size(); v++) {
         _inputs[v].resize(_visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height, 0);
@@ -353,7 +351,7 @@ void Layer::create(int hiddenWidth, int hiddenHeight, int columnSize, const std:
                     _feedForwardWeights[v][hiddenCellIndex].resize(forwardVecSize);
                     
                     for (int j = 0; j < forwardVecSize; j++)
-                        _feedForwardWeights[v][hiddenCellIndex][j] = initWeightDistHigh(rng);
+                        _feedForwardWeights[v][hiddenCellIndex][j] = initWeightDist(rng);
                 }
 
         if (_visibleLayerDescs[v]._predict) {
@@ -371,7 +369,7 @@ void Layer::create(int hiddenWidth, int hiddenHeight, int columnSize, const std:
                         _feedBackWeights[v][visibleCellIndex].resize(backwardVecSize);
 
                         for (int j = 0; j < backwardVecSize; j++)
-                            _feedBackWeights[v][visibleCellIndex][j] = initWeightDistLow(rng);
+                            _feedBackWeights[v][visibleCellIndex][j] = initWeightDist(rng);
                     }
         }
     }
