@@ -76,9 +76,9 @@ void Layer::columnForward(int ci) {
 
                             float recon = _reconsActLearn[v][visibleCellIndex] / std::max(1.0f, _reconCountsActLearn[v][visibleCellIndex]);
 
-                            float target = c == inputIndexPrev ? 1.0f : 0.0f;
+                            float target = (c == inputIndexPrev ? 1.0f : 0.0f);
 
-                            _feedForwardWeights[v][hiddenCellIndexPrev][wi] = std::max(0.0f, _feedForwardWeights[v][hiddenCellIndexPrev][wi] + _alpha * (target - recon));
+                            _feedForwardWeights[v][hiddenCellIndexPrev][wi] = std::max(0.0f, _feedForwardWeights[v][hiddenCellIndexPrev][wi] + _alpha * (target - recon) * _feedForwardWeights[v][hiddenCellIndexPrev][wi]);
                         }
                     }
 
