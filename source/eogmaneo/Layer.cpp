@@ -33,9 +33,7 @@ void Layer::columnForward(int ci) {
     int hiddenColumnX = ci % _hiddenWidth;
     int hiddenColumnY = ci / _hiddenWidth;
 
-    int hiddenStatePrev = _hiddenStatesPrev[ci];
-
-    int hiddenCellIndexPrev = ci + hiddenStatePrev * _hiddenWidth * _hiddenHeight;
+    int hiddenCellIndexPrev = ci + _hiddenStatesPrev[ci] * _hiddenWidth * _hiddenHeight;
 
     std::vector<float> columnActivations(_columnSize, 0.0f);
 
@@ -72,9 +70,11 @@ void Layer::columnForward(int ci) {
                         for (int c = 0; c < _visibleLayerDescs[v]._columnSize; c++) {
                             int wi = (cx - lowerVisibleX) + (cy - lowerVisibleY) * forwardDiam + c * forwardSize;
 
-                            float d = (c == inputIndexPrev ? 0.0f : -1.0f);
+                            if (_feedForwardWeights[v][hiddenCellIndexPrev][wi] > 0.0f) {
+                                float d = (c == inputIndexPrev ? 0.0f : -1.0f);
 
-                            _feedForwardWeights[v][hiddenCellIndexPrev][wi] = std::max(0.0f, _feedForwardWeights[v][hiddenCellIndexPrev][wi] + _alpha * d);
+                                _feedForwardWeights[v][hiddenCellIndexPrev][wi] = std::max(0.0f, _feedForwardWeights[v][hiddenCellIndexPrev][wi] + _alpha * d);
+                            }
                         }
                     }
 
@@ -242,7 +242,7 @@ void Layer::create(int hiddenWidth, int hiddenHeight, int columnSize, const std:
 
     std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
     std::uniform_real_distribution<float> initWeightDistLow(-0.001f, 0.001f);
-    std::uniform_real_distribution<float> initWeightDistHigh(0.0f, 1.0f);
+    std::uniform_real_distribution<float> initWeightDistHigh(0.99f, 1.0f);
 
     for (int v = 0; v < _visibleLayerDescs.size(); v++) {
         _inputs[v].resize(_visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height, 0);
