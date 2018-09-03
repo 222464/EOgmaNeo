@@ -33,9 +33,7 @@ void Layer::columnForward(int ci) {
     int hiddenColumnX = ci % _hiddenWidth;
     int hiddenColumnY = ci / _hiddenWidth;
 
-    int hiddenStatePrev = _hiddenStatesPrev[ci];
-
-    int hiddenCellIndexPrev = ci + hiddenStatePrev * _hiddenWidth * _hiddenHeight;
+    int hiddenCellIndexPrev = ci + _hiddenStatesPrev[ci] * _hiddenWidth * _hiddenHeight;
 
     std::vector<float> columnActivations(_columnSize, 0.0f);
 
@@ -238,6 +236,16 @@ void Layer::columnBackward(int ci, int v) {
             }
         }
 
+    float maxi = -99999.0f;
+
+    for (int c = 0; c < visibleColumnSize; c++)
+        maxi = std::max(maxi, columnActivationsPrev[c]);
+
+    float total = 0.0f;
+
+    for (int c = 0; c < visibleColumnSize; c++)
+        total += std::exp(columnActivationsPrev[c] - maxi);
+
     int inputIndex = _inputs[v][ci];
 
     std::vector<float> deltas(visibleColumnSize, 0.0f);
@@ -246,7 +254,8 @@ void Layer::columnBackward(int ci, int v) {
     int predIndex = 0;
 
     for (int c = 0; c < visibleColumnSize; c++) {
-        float s = sigmoid(columnActivationsPrev[c]);
+        float s = std::exp(columnActivationsPrev[c] - maxi) / std::max(0.0001f, total);
+        
         deltas[c] -= s;
         deltas[c] *= _beta;
 
