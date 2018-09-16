@@ -584,3 +584,20 @@ void Layer::writeToStream(std::ostream &os) {
         os.write(reinterpret_cast<char*>(&s._reward), sizeof(float));
     }
 }
+
+void Layer::zeroContext() {
+    _historySamples.clear();
+
+    for (int v = 0; v < _visibleLayerDescs.size(); v++) {
+        for (int i = 0; i < _inputs[v].size(); i++) {
+            _inputs[v][i] = 0;
+            _inputsPrev[v][i] = 0;
+            _predictions[v][i] = 0;
+        }
+    }
+
+    for (int i = 0; i < _hiddenStates.size(); i++) {
+        _hiddenStates[i] = 0;
+        _hiddenStatesPrev[i] = 0;
+    }
+}

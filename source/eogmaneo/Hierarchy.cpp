@@ -254,3 +254,18 @@ bool Hierarchy::load(const std::string &fileName) {
 
     return true;
 }
+
+void Hierarchy::zeroContext() {
+    for (int l = 0; l < _layers.size(); l++) {
+        _ticks[l] = 0;
+        _rewards[l] = 0.0f;
+        _rewardCounts[l] = 0.0f;
+
+        // Clear history
+        for (int v = 0; v < _histories[l].size(); v++)
+            for (int i = 0; i < _histories[l][v].size(); i++)
+                _histories[l][v][i] = 0;
+
+        _layers[l].zeroContext();
+    }
+}
