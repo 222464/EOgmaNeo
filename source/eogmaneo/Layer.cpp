@@ -70,9 +70,9 @@ void Layer::columnForward(int ci) {
                         for (int c = 0; c < _visibleLayerDescs[v]._columnSize; c++) {
                             int wi = (cx - lowerVisibleX) + (cy - lowerVisibleY) * forwardDiam + c * forwardSize;
 
-                            float target = (c == inputIndexPrev ? 1.0f : 0.0f);
+                            float d = (c == inputIndexPrev ? 0.0f : -_alpha * _feedForwardWeights[v][hiddenCellIndexPrev][wi]);
 
-                            _feedForwardWeights[v][hiddenCellIndexPrev][wi] += _alpha * (target - _feedForwardWeights[v][hiddenCellIndexPrev][wi]);
+                            _feedForwardWeights[v][hiddenCellIndexPrev][wi] += d;
                         }
                     }
 
@@ -239,8 +239,8 @@ void Layer::create(int hiddenWidth, int hiddenHeight, int columnSize, const std:
     _hiddenStates.resize(_hiddenWidth * _hiddenHeight, 0);
 
     std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
+    std::uniform_real_distribution<float> initWeightDistHigh(0.999f, 1.0f);
     std::uniform_real_distribution<float> initWeightDistLow(-0.001f, 0.001f);
-    std::uniform_real_distribution<float> initWeightDistHigh(0.99f, 1.0f);
 
     for (int v = 0; v < _visibleLayerDescs.size(); v++) {
         _inputs[v].resize(_visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height, 0);
@@ -486,5 +486,20 @@ void Layer::writeToStream(std::ostream &os) {
                         os.write(reinterpret_cast<char*>(_feedBackWeights[v][visibleCellIndex].data()), _feedBackWeights[v][visibleCellIndex].size() * sizeof(float));
                     }
         }
+    }
+}
+
+void Layer::zeroContext() {
+    for (int v = 0; v < _visibleLayerDescs.size(); v++) {
+        for (int i = 0; i < _inputs[v].size(); i++) {
+            _inputs[v][i] = 0;
+            _inputsPrev[v][i] = 0;
+            _predictions[v][i] = 0;
+        }
+    }
+
+    for (int i = 0; i < _hiddenStates.size(); i++) {
+        _hiddenStates[i] = 0;
+        _hiddenStatesPrev[i] = 0;
     }
 }

@@ -236,6 +236,11 @@ namespace eogmaneo {
             return _predictions[v];
         }
 
+        /*!
+        \brief Clear context.
+        */
+        void zeroContext();
+
         friend class LayerForwardWorkItem;
         friend class LayerBackwardWorkItem;
 

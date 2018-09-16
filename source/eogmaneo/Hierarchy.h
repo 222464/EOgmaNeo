@@ -154,5 +154,10 @@ namespace eogmaneo {
         Layer &getLayer(int l) {
             return _layers[l];
         }
+
+        /*!
+        \brief Clear context.
+        */
+        void zeroContext();
     };
 }
