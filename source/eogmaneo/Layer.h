@@ -99,16 +99,6 @@ namespace eogmaneo {
 	};
 
     /*!
-    \brief History sample.
-    */
-    struct HistorySample {
-        std::vector<int> _hiddenStates;
-        std::vector<int> _feedBack;
-        std::vector<std::vector<int> > _inputs;
-        float _reward;
-    };
-
-    /*!
     \brief A layer in the hierarchy.
     */
     class Layer {
@@ -131,10 +121,11 @@ namespace eogmaneo {
         std::vector<std::vector<int>> _inputsPrev;
         
         std::vector<int> _feedBack;
+        std::vector<int> _feedBackPrev;
 
         bool _learn;
-        
-        std::vector<HistorySample> _historySamples;
+
+        float _reward;
   
         void columnForward(int ci);
         void columnBackward(int ci, int v, std::mt19937 &rng);
@@ -162,15 +153,10 @@ namespace eogmaneo {
         float _gamma;
 
         /*!
-        \brief Maximum number of history samples.
-        */
-        int _valueHorizon;
-
-        /*!
         \brief Initialize defaults.
         */
         Layer()
-        : _alpha(0.1f), _beta(0.1f), _gamma(0.98f), _valueHorizon(16)
+        : _alpha(0.1f), _beta(0.1f), _gamma(0.9f)
         {}
 
         /*!
