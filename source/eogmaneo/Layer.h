@@ -170,7 +170,7 @@ namespace eogmaneo {
         \brief Initialize defaults.
         */
         Layer()
-        : _alpha(0.001f), _beta(0.1f), _gamma(0.98f), _valueHorizon(16)
+        : _alpha(0.01f), _beta(0.1f), _gamma(0.98f), _valueHorizon(16)
         {}
 
         /*!
@@ -186,14 +186,14 @@ namespace eogmaneo {
 
         /*!
         \brief Forward activation and learning.
-        \param inputs vector of input SDRs in chunked format.
+        \param inputs vector of input SDRs in columnar format.
         \param learn whether to learn.
         */
         void forward(ComputeSystem &cs, const std::vector<std::vector<int> > &inputs, bool learn);
 
         /*!
         \brief Backward activation.
-        \param feedBack vector of feedback SDRs in chunked format.
+        \param feedBack vector of feedback SDRs in columnar format.
         \param reward reinforcement signal.
         \param learn whether to learn.
         */
@@ -234,28 +234,35 @@ namespace eogmaneo {
         }
 
         /*!
-        \brief Get hidden states, in chunked format.
+        \brief Get hidden states, in columnar format.
         */
         const std::vector<int> &getHiddenStates() const {
             return _hiddenStates;
         }
 
         /*!
-        \brief Get hidden states, in chunked format.
+        \brief Get previous hidden states, in columnar format.
         */
         const std::vector<int> &getHiddenStatesPrev() const {
             return _hiddenStatesPrev;
         }
 
         /*!
-        \brief Get inputs of a visible layer, in chunked format.
+        \brief Get inputs of a visible layer, in columnar format.
         */
         const std::vector<int> &getInputs(int v) const {
             return _inputs[v];
         }
 
         /*!
-        \brief Get predictions of a visible layer, in chunked format.
+        \brief Get previous inputs of a visible layer, in columnar format.
+        */
+        const std::vector<int> &getInputsPrev(int v) const {
+            return _inputsPrev[v];
+        }
+
+        /*!
+        \brief Get predictions of a visible layer, in columnar format.
         */
         const std::vector<int> &getPredictions(int v) const {
             return _predictions[v];
