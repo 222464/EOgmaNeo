@@ -70,9 +70,8 @@ void Layer::columnForward(int ci) {
                         for (int c = 0; c < _visibleLayerDescs[v]._columnSize; c++) {
                             int wi = (cx - lowerVisibleX) + (cy - lowerVisibleY) * forwardDiam + c * forwardSize;
 
-                            float d = (c == inputIndexPrev ? _alpha : -_alpha) * _feedForwardWeights[v][hiddenCellIndexPrev][wi];
-
-                            _feedForwardWeights[v][hiddenCellIndexPrev][wi] = std::min(1.0f, std::max(0.0f, _feedForwardWeights[v][hiddenCellIndexPrev][wi] + d));
+                            if (c != inputIndexPrev)
+                                _feedForwardWeights[v][hiddenCellIndexPrev][wi] = std::max(0.0f, _feedForwardWeights[v][hiddenCellIndexPrev][wi] - _alpha);
                         }
                     }
 
