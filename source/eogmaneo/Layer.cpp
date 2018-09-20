@@ -71,7 +71,7 @@ void Layer::columnForward(int ci) {
                             int wi = (cx - lowerVisibleX) + (cy - lowerVisibleY) * forwardDiam + c * forwardSize;
 
                             if (c != inputIndexPrev)
-                                _feedForwardWeights[v][hiddenCellIndexPrev][wi] = std::max(0.0f, _feedForwardWeights[v][hiddenCellIndexPrev][wi] - _alpha * _feedForwardWeights[v][hiddenCellIndexPrev][wi]);
+                                _feedForwardWeights[v][hiddenCellIndexPrev][wi] += -_alpha * _feedForwardWeights[v][hiddenCellIndexPrev][wi];
                         }
                     }
 
