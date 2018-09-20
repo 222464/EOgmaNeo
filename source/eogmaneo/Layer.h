@@ -121,7 +121,7 @@ namespace eogmaneo {
         std::vector<int> _hiddenStatesPrev;
         
         std::vector<std::vector<std::vector<float>>> _feedForwardWeights;
-        std::vector<std::vector<std::vector<float>>> _feedBackWeights;
+        std::vector<std::vector<std::vector<std::pair<float, float>>>> _feedBackWeights;
 
         std::vector<VisibleLayerDesc> _visibleLayerDescs;
 
@@ -157,6 +157,11 @@ namespace eogmaneo {
         float _beta;
 
         /*!
+        \brief Decoder momentum.
+        */
+        float _momentum;
+
+        /*!
         \brief Discount factor.
         */
         float _gamma;
@@ -170,7 +175,7 @@ namespace eogmaneo {
         \brief Initialize defaults.
         */
         Layer()
-        : _alpha(0.1f), _beta(0.1f), _gamma(0.98f), _valueHorizon(16)
+        : _alpha(0.1f), _beta(0.01f), _momentum(0.9f), _gamma(0.98f), _valueHorizon(16)
         {}
 
         /*!
