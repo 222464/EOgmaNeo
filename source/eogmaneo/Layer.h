@@ -99,6 +99,16 @@ namespace eogmaneo {
 	};
 
     /*!
+    \brief History sample.
+    */
+    struct HistorySample {
+        std::vector<int> _hiddenStates;
+        std::vector<int> _feedBack;
+        std::vector<std::vector<int> > _predictionsPrev;
+        float _reward;
+    };
+
+    /*!
     \brief A layer in the hierarchy.
     */
     class Layer {
@@ -131,11 +141,11 @@ namespace eogmaneo {
         std::vector<int> _feedBack;
         std::vector<int> _feedBackPrev;
 
+        std::vector<HistorySample> _historySamples;
+
         int _codeIter;
 
         bool _learn;
-
-        float _reward;
   
         void columnForward(int ci);
         void columnBackward(int ci, int v, std::mt19937 &rng);
@@ -163,15 +173,25 @@ namespace eogmaneo {
         float _gamma;
 
         /*!
+        \brief Exploration rate.
+        */
+        float _epsilon;
+
+        /*!
         \brief Sparse coding iterations.
         */
         int _codeIters;
 
         /*!
+        \brief Credit assignment horizon.
+        */
+        int _valueHorizon;
+
+        /*!
         \brief Initialize defaults.
         */
         Layer()
-        : _alpha(0.1f), _beta(0.1f), _gamma(0.9f), _codeIters(4)
+        : _alpha(0.1f), _beta(0.1f), _gamma(0.9f), _epsilon(0.01f), _codeIters(4), _valueHorizon(16)
         {}
 
         /*!
