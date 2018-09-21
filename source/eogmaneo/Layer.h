@@ -191,7 +191,7 @@ namespace eogmaneo {
         \brief Initialize defaults.
         */
         Layer()
-        : _alpha(0.001f), _beta(0.01f), _gamma(0.98f), _epsilon(0.01f), _codeIters(4), _valueHorizon(16)
+        : _alpha(0.002f), _beta(0.005f), _gamma(0.92f), _epsilon(0.01f), _codeIters(4), _valueHorizon(16)
         {}
 
         /*!
