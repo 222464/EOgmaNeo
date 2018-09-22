@@ -74,11 +74,8 @@ void Layer::columnForward(int ci) {
 
                             int visibleCellIndex = visibleColumnIndex + c * _visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height;
 
-                            float recon = sigmoid(_reconsActLearn[v][visibleCellIndex] / std::max(1.0f, _reconCountsActLearn[v][visibleCellIndex]));
-
-                            float target = (c == inputIndexPrev ? 1.0f : 0.0f);
-
-                            _feedForwardWeights[v][hiddenCellIndexPrev][wi] += _alpha * (target - recon);
+                            if (c != inputIndexPrev)
+                                _feedForwardWeights[v][hiddenCellIndexPrev][wi] -= _alpha * _feedForwardWeights[v][hiddenCellIndexPrev][wi];
                         }
                     }
 
@@ -97,7 +94,7 @@ void Layer::columnForward(int ci) {
 
                         int visibleCellIndex = visibleColumnIndex + inputIndex * _visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height;
 
-                        float recon = sigmoid(_reconsActLearn[v][visibleCellIndex] / std::max(1.0f, _reconCountsActLearn[v][visibleCellIndex]));
+                        float recon = _reconsActLearn[v][visibleCellIndex] / std::max(1.0f, _reconCountsActLearn[v][visibleCellIndex]);
 
                         for (int c = 0; c < _columnSize; c++) {
                             int hiddenCellIndex = ci + c * _hiddenWidth * _hiddenHeight;
@@ -350,8 +347,8 @@ void Layer::create(int hiddenWidth, int hiddenHeight, int columnSize, const std:
 
     _hiddenActivations.resize(_hiddenStates.size() * _columnSize, 0.0f);
     
-    std::uniform_real_distribution<float> initWeightDistHigh(0.9f, 1.0f);
-    std::uniform_real_distribution<float> initWeightDistLow(-0.001f, 0.001f);
+    std::uniform_real_distribution<float> initWeightDistHigh(0.99f, 1.0f);
+    std::uniform_real_distribution<float> initWeightDistLow(-0.0001f, 0.0001f);
 
     for (int v = 0; v < _visibleLayerDescs.size(); v++) {
         _inputs[v].resize(_visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height, 0);
