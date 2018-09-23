@@ -74,8 +74,11 @@ void Layer::columnForward(int ci) {
 
                             int visibleCellIndex = visibleColumnIndex + c * _visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height;
 
-                            if (c != inputIndexPrev)
-                                _feedForwardWeights[v][hiddenCellIndexPrev][wi] -= _alpha * _feedForwardWeights[v][hiddenCellIndexPrev][wi];
+                            float recon = sigmoid(_reconsActLearn[v][visibleCellIndex] / std::max(1.0f, _reconCountsActLearn[v][visibleCellIndex]));
+
+                            float target = (c == inputIndexPrev ? 1.0f : 0.0f);
+
+                            _feedForwardWeights[v][hiddenCellIndexPrev][wi] += _alpha * (target - recon);
                         }
                     }
 
