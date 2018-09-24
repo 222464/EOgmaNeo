@@ -102,8 +102,8 @@ void Layer::columnForward(int ci) {
                         
         columnActivations[c] += _hiddenBiases[hiddenCellIndex];
 
-        if (_learn)
-            _hiddenBiases[hiddenCellIndex] += _delta * -columnActivations[c];
+        //if (_learn)
+        _hiddenBiases[hiddenCellIndex] += _delta * -columnActivations[c];
 
 		if (columnActivations[c] > columnActivations[maxCellIndex])
 			maxCellIndex = c;
