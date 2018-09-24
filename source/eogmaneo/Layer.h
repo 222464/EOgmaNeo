@@ -120,6 +120,8 @@ namespace eogmaneo {
         std::vector<int> _hiddenStates;
         std::vector<int> _hiddenStatesPrev;
         
+        std::vector<float> _hiddenBiases;
+
         std::vector<std::vector<std::vector<float>>> _feedForwardWeights;
         std::vector<std::vector<std::vector<float>>> _feedBackWeights;
 
@@ -169,6 +171,11 @@ namespace eogmaneo {
         float _gamma;
 
         /*!
+        \brief Bias decay factor.
+        */
+        float _delta;
+
+        /*!
         \brief Credit assignment horizon.
         */
         int _valueHorizon;
@@ -177,7 +184,7 @@ namespace eogmaneo {
         \brief Initialize defaults.
         */
         Layer()
-        : _alpha(0.1f), _beta(0.1f), _gamma(0.99f), _valueHorizon(16)
+        : _alpha(0.1f), _beta(0.1f), _gamma(0.99f), _delta(0.01f), _valueHorizon(16)
         {}
 
         /*!
