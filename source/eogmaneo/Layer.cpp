@@ -453,6 +453,7 @@ void Layer::readFromStream(std::istream &is) {
     is.read(reinterpret_cast<char*>(&_alpha), sizeof(float));
     is.read(reinterpret_cast<char*>(&_beta), sizeof(float));
     is.read(reinterpret_cast<char*>(&_gamma), sizeof(float));
+    is.read(reinterpret_cast<char*>(&_delta), sizeof(float));
     is.read(reinterpret_cast<char*>(&_valueHorizon), sizeof(int));
 
     int numVisibleLayerDescs;
@@ -582,6 +583,7 @@ void Layer::writeToStream(std::ostream &os) {
     os.write(reinterpret_cast<char*>(&_alpha), sizeof(float));
     os.write(reinterpret_cast<char*>(&_beta), sizeof(float));
     os.write(reinterpret_cast<char*>(&_gamma), sizeof(float));
+    os.write(reinterpret_cast<char*>(&_delta), sizeof(float));
     os.write(reinterpret_cast<char*>(&_valueHorizon), sizeof(int));
 
     int numVisibleLayerDescs = _visibleLayerDescs.size();
