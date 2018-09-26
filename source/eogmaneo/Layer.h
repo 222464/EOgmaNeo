@@ -120,6 +120,8 @@ namespace eogmaneo {
         std::vector<int> _hiddenStates;
         std::vector<int> _hiddenStatesPrev;
         
+        std::vector<float> _hiddenBiases;
+
         std::vector<std::vector<std::vector<float>>> _feedForwardWeights;
         std::vector<std::vector<std::vector<float>>> _feedBackWeights;
 
@@ -129,12 +131,19 @@ namespace eogmaneo {
         
         std::vector<std::vector<int>> _inputs;
         std::vector<std::vector<int>> _inputsPrev;
+
+        std::vector<std::vector<float>> _recons;
+        std::vector<std::vector<float>> _reconCounts;
+
+        std::vector<std::vector<float>> _reconsActLearn;
+        std::vector<std::vector<float>> _reconCountsActLearn;
         
         std::vector<int> _feedBack;
+        std::vector<int> _feedBackPrev;
+
+        std::vector<HistorySample> _historySamples;
 
         bool _learn;
-        
-        std::vector<HistorySample> _historySamples;
   
         void columnForward(int ci);
         void columnBackward(int ci, int v, std::mt19937 &rng);
@@ -162,7 +171,12 @@ namespace eogmaneo {
         float _gamma;
 
         /*!
-        \brief Maximum number of history samples.
+        \brief Bias decay factor.
+        */
+        float _delta;
+
+        /*!
+        \brief Credit assignment horizon.
         */
         int _valueHorizon;
 
@@ -170,7 +184,7 @@ namespace eogmaneo {
         \brief Initialize defaults.
         */
         Layer()
-        : _alpha(0.1f), _beta(0.1f), _gamma(0.98f), _valueHorizon(16)
+        : _alpha(0.1f), _beta(0.1f), _gamma(0.99f), _delta(0.0001f), _valueHorizon(32)
         {}
 
         /*!
