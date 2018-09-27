@@ -104,7 +104,7 @@ namespace eogmaneo {
     struct HistorySample {
         std::vector<int> _hiddenStates;
         std::vector<int> _feedBack;
-        std::vector<std::vector<int> > _inputs;
+        std::vector<std::vector<int> > _predictionsPrev;
         float _reward;
     };
 
@@ -176,6 +176,11 @@ namespace eogmaneo {
         float _delta;
 
         /*!
+        \brief Exploration rate.
+        */
+        float _epsilon;
+
+        /*!
         \brief Credit assignment horizon.
         */
         int _valueHorizon;
@@ -184,7 +189,7 @@ namespace eogmaneo {
         \brief Initialize defaults.
         */
         Layer()
-        : _alpha(0.1f), _beta(0.1f), _gamma(0.99f), _delta(0.0001f), _valueHorizon(32)
+        : _alpha(0.1f), _beta(0.02f), _gamma(0.98f), _delta(0.0001f), _epsilon(0.01f), _valueHorizon(32)
         {}
 
         /*!
