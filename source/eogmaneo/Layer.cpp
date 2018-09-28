@@ -78,7 +78,7 @@ void Layer::columnForward(int ci) {
 
                             float target = (c == inputIndexPrev ? 1.0f : 0.0f);
 
-                            _feedForwardWeights[v][hiddenCellIndexPrev][wi] += _alpha * (target - recon) * recon * (1.0f - recon);
+                            _feedForwardWeights[v][hiddenCellIndexPrev][wi] += _alpha * (target - recon);
                         }
                     }
 
