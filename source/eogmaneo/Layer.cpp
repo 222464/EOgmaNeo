@@ -322,7 +322,7 @@ void Layer::create(int hiddenWidth, int hiddenHeight, int columnSize, const std:
 
     _hiddenStates.resize(_hiddenWidth * _hiddenHeight, 0);
 
-    std::uniform_real_distribution<float> initWeightDistHigh(-0.1f, 0.1f);
+    std::uniform_real_distribution<float> initWeightDistHigh(0.0f, 0.1f);
     std::uniform_real_distribution<float> initWeightDistLow(-0.0001f, 0.0001f);
 
     for (int v = 0; v < _visibleLayerDescs.size(); v++) {
