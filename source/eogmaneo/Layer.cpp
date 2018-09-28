@@ -67,18 +67,13 @@ void Layer::columnForward(int ci) {
                     int inputIndex = _inputs[v][visibleColumnIndex];
                     int inputIndexPrev = _inputsPrev[v][visibleColumnIndex];
 
-                    if (_learn && !_reconsActLearn.empty()) {
+                    if (_learn) {
                         // Input cells
                         for (int c = 0; c < _visibleLayerDescs[v]._columnSize; c++) {
                             int wi = (cx - lowerVisibleX) + (cy - lowerVisibleY) * forwardDiam + c * forwardSize;
 
-                            int visibleCellIndex = visibleColumnIndex + c * _visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height;
-
-                            float recon = sigmoid(_reconsActLearn[v][visibleCellIndex] / std::max(1.0f, _reconCountsActLearn[v][visibleCellIndex]));
-
-                            float target = (c == inputIndexPrev ? 1.0f : 0.0f);
-
-                            _feedForwardWeights[v][hiddenCellIndexPrev][wi] += _alpha * (target - recon);
+                            if (c != inputIndexPrev)
+                                _feedForwardWeights[v][hiddenCellIndexPrev][wi] -= _alpha * _feedForwardWeights[v][hiddenCellIndexPrev][wi];
                         }
                     }
 
@@ -102,46 +97,6 @@ void Layer::columnForward(int ci) {
 			maxCellIndex = c;
 
     _hiddenStates[ci] = maxCellIndex;
-
-    int hiddenCellIndex = ci + maxCellIndex * _hiddenWidth * _hiddenHeight;
-
-    // Reconstruct
-    for (int v = 0; v < _visibleLayerDescs.size(); v++) {
-        float toInputX = static_cast<float>(_visibleLayerDescs[v]._width) / static_cast<float>(_hiddenWidth);
-        float toInputY = static_cast<float>(_visibleLayerDescs[v]._height) / static_cast<float>(_hiddenHeight);
-
-        int visibleCenterX = hiddenColumnX * toInputX + 0.5f;
-        int visibleCenterY = hiddenColumnY * toInputY + 0.5f;
-
-        int forwardRadius = _visibleLayerDescs[v]._forwardRadius;
-
-        int forwardDiam = forwardRadius * 2 + 1;
-
-        int forwardSize = forwardDiam * forwardDiam;
-
-        int lowerVisibleX = visibleCenterX - forwardRadius;
-        int lowerVisibleY = visibleCenterY - forwardRadius;
-
-        for (int dcx = -forwardRadius; dcx <= forwardRadius; dcx++)
-            for (int dcy = -forwardRadius; dcy <= forwardRadius; dcy++) {
-                int cx = visibleCenterX + dcx;
-                int cy = visibleCenterY + dcy;
-
-                if (cx >= 0 && cx < _visibleLayerDescs[v]._width && cy >= 0 && cy < _visibleLayerDescs[v]._height) {
-                    int visibleColumnIndex = cx + cy * _visibleLayerDescs[v]._width;
-
-                    // Input cells
-                    for (int c = 0; c < _visibleLayerDescs[v]._columnSize; c++) {
-                        int wi = (cx - lowerVisibleX) + (cy - lowerVisibleY) * forwardDiam + c * forwardSize;
-
-                        int visibleCellIndex = visibleColumnIndex + c * _visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height;
-
-                        _recons[v][visibleCellIndex] += _feedForwardWeights[v][hiddenCellIndex][wi];
-                        _reconCounts[v][visibleCellIndex] += 1.0f;
-                    }
-                }
-            }
-    }
 }
 
 void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
@@ -322,7 +277,7 @@ void Layer::create(int hiddenWidth, int hiddenHeight, int columnSize, const std:
 
     _hiddenStates.resize(_hiddenWidth * _hiddenHeight, 0);
 
-    std::uniform_real_distribution<float> initWeightDistHigh(0.0f, 0.1f);
+    std::uniform_real_distribution<float> initWeightDistHigh(0.9f, 1.0f);
     std::uniform_real_distribution<float> initWeightDistLow(-0.0001f, 0.0001f);
 
     for (int v = 0; v < _visibleLayerDescs.size(); v++) {
@@ -378,15 +333,6 @@ void Layer::forward(ComputeSystem &cs, const std::vector<std::vector<int>> &inpu
 
     _hiddenStatesPrev = _hiddenStates;
 
-    // Clear recons
-    _recons.clear();
-    _recons.resize(_visibleLayerDescs.size());
-
-    for (int v = 0; v < _visibleLayerDescs.size(); v++)
-        _recons[v].resize(_visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height * _visibleLayerDescs[v]._columnSize, 0.0f);
-    
-    _reconCounts = _recons;
-
     for (int ci = 0; ci < _hiddenStates.size(); ci++) {
         std::shared_ptr<LayerForwardWorkItem> item = std::make_shared<LayerForwardWorkItem>();
 
@@ -397,9 +343,6 @@ void Layer::forward(ComputeSystem &cs, const std::vector<std::vector<int>> &inpu
     }
     
     cs._pool.wait();
-
-    _reconsActLearn = _recons;
-    _reconCountsActLearn = _reconCounts;
 }
 
 void Layer::backward(ComputeSystem &cs, const std::vector<int> &feedBack, float reward, bool learn) {
