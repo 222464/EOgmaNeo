@@ -97,17 +97,9 @@ void Layer::columnForward(int ci) {
 	// Find max element
 	int maxCellIndex = 0;
 
-	for (int c = 0; c < _columnSize; c++) {
-        int hiddenCellIndex = ci + c * _hiddenWidth * _hiddenHeight;
-                        
-        columnActivations[c] += _hiddenBiases[hiddenCellIndex];
-
-        //if (_learn)
-        _hiddenBiases[hiddenCellIndex] += _delta * -columnActivations[c];
-
+	for (int c = 1; c < _columnSize; c++)
 		if (columnActivations[c] > columnActivations[maxCellIndex])
 			maxCellIndex = c;
-	}
 
     _hiddenStates[ci] = maxCellIndex;
 
@@ -322,8 +314,6 @@ void Layer::create(int hiddenWidth, int hiddenHeight, int columnSize, const std:
 
     _hiddenStates.resize(_hiddenWidth * _hiddenHeight, 0);
 
-    _hiddenBiases.resize(_hiddenStates.size() * _columnSize, 0.0f);
-
     std::uniform_real_distribution<float> initWeightDistHigh(-0.1f, 0.1f);
     std::uniform_real_distribution<float> initWeightDistLow(-0.0001f, 0.0001f);
 
@@ -453,7 +443,6 @@ void Layer::readFromStream(std::istream &is) {
     is.read(reinterpret_cast<char*>(&_alpha), sizeof(float));
     is.read(reinterpret_cast<char*>(&_beta), sizeof(float));
     is.read(reinterpret_cast<char*>(&_gamma), sizeof(float));
-    is.read(reinterpret_cast<char*>(&_delta), sizeof(float));
     is.read(reinterpret_cast<char*>(&_valueHorizon), sizeof(int));
 
     int numVisibleLayerDescs;
@@ -476,7 +465,6 @@ void Layer::readFromStream(std::istream &is) {
     _hiddenStatesPrev.resize(_hiddenStates.size());
     _feedBack.resize(_hiddenStates.size());
     _feedBackPrev.resize(_hiddenStates.size());
-    _hiddenBiases.resize(_hiddenStates.size() * _columnSize);
 
     is.read(reinterpret_cast<char*>(_hiddenStates.data()), _hiddenStates.size() * sizeof(int));
     is.read(reinterpret_cast<char*>(_hiddenStatesPrev.data()), _hiddenStatesPrev.size() * sizeof(int));
@@ -490,8 +478,6 @@ void Layer::readFromStream(std::istream &is) {
     if (_feedBackPrev.front() == -1)
         _feedBackPrev.clear();
     
-    is.read(reinterpret_cast<char*>(_hiddenBiases.data()), _hiddenBiases.size() * sizeof(float));
-
     for (int v = 0; v < _visibleLayerDescs.size(); v++) {
         // Visible layer data
         _inputs[v].resize(_visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height);
@@ -583,7 +569,6 @@ void Layer::writeToStream(std::ostream &os) {
     os.write(reinterpret_cast<char*>(&_alpha), sizeof(float));
     os.write(reinterpret_cast<char*>(&_beta), sizeof(float));
     os.write(reinterpret_cast<char*>(&_gamma), sizeof(float));
-    os.write(reinterpret_cast<char*>(&_delta), sizeof(float));
     os.write(reinterpret_cast<char*>(&_valueHorizon), sizeof(int));
 
     int numVisibleLayerDescs = _visibleLayerDescs.size();
@@ -607,8 +592,6 @@ void Layer::writeToStream(std::ostream &os) {
 
     os.write(reinterpret_cast<char*>(writeFeedBack.data()), writeFeedBack.size() * sizeof(int));
     os.write(reinterpret_cast<char*>(writeFeedBackPrev.data()), writeFeedBackPrev.size() * sizeof(int));
-
-    os.write(reinterpret_cast<char*>(_hiddenBiases.data()), _hiddenBiases.size() * sizeof(float));
 
     for (int v = 0; v < _visibleLayerDescs.size(); v++) {
         // Visible layer data
