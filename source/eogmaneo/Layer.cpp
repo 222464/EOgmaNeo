@@ -255,99 +255,81 @@ void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
             predIndex = c;
     }
 
-    // std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
-
-    // if (dist01(rng) < _epsilon) {
-    //     std::uniform_int_distribution<int> columnDist(0, visibleColumnSize - 1);
-
-    //     _predictions[v][ci] = columnDist(rng);
-    // }
-    // else
     _predictions[v][ci] = predIndex;
 
-    if (_historySamples.size() > 2 && _learn) {
-        std::vector<float> qs(_historySamples.size());
-
+    if (_historySamples.size() == _valueHorizon && _learn) {
         float q = columnActivations[_predictions[v][ci]];
 
         for (int t = 0; t < _historySamples.size() - 1; t++) {
             const HistorySample &s = _historySamples[t];            
 
             q = s._reward + _gamma * q;
-
-            qs[t] = q;
         }
         
-        std::uniform_int_distribution<int> historyDist(0, _historySamples.size() - 2);
+        const HistorySample &s = _historySamples[_valueHorizon - 2];
+        const HistorySample &sPrev = _historySamples[_valueHorizon - 1];
 
-        for (int it = 0; it < _historyIters; it++) {
-            int t = historyDist(rng);
+        float sColumnActivationPrev = 0.0f;
 
-            const HistorySample &s = _historySamples[t];
-            const HistorySample &sPrev = _historySamples[t + 1];
+        int updateIndex = s._inputs[v][ci];
 
-            float sColumnActivationPrev = 0.0f;
+        int visibleCellIndexUpdate = ci + updateIndex * visibleWidth * visibleHeight;
 
-            int updateIndex = s._inputs[v][ci];
+        for (int dcx = -backwardRadius; dcx <= backwardRadius; dcx++)
+            for (int dcy = -backwardRadius; dcy <= backwardRadius; dcy++) {
+                int cx = hiddenCenterX + dcx;
+                int cy = hiddenCenterY + dcy;
 
-            int visibleCellIndexUpdate = ci + updateIndex * visibleWidth * visibleHeight;
+                if (cx >= 0 && cx < _hiddenWidth && cy >= 0 && cy < _hiddenHeight) {
+                    int hiddenColumnIndex = cx + cy * _hiddenWidth;
 
-            for (int dcx = -backwardRadius; dcx <= backwardRadius; dcx++)
-                for (int dcy = -backwardRadius; dcy <= backwardRadius; dcy++) {
-                    int cx = hiddenCenterX + dcx;
-                    int cy = hiddenCenterY + dcy;
-
-                    if (cx >= 0 && cx < _hiddenWidth && cy >= 0 && cy < _hiddenHeight) {
-                        int hiddenColumnIndex = cx + cy * _hiddenWidth;
-
-                        if (!sPrev._feedBack.empty()) {
-                            int feedBackIndexPrev = sPrev._feedBack[hiddenColumnIndex];
-
-                            // Output cells
-                            int wiPrev = (cx - lowerHiddenX) + (cy - lowerHiddenY) * backwardDiam + feedBackIndexPrev * backwardSize;
-
-                            sColumnActivationPrev += _feedBackWeights[v][visibleCellIndexUpdate][wiPrev];
-                        }
-
-                        int hiddenIndexPrev = sPrev._hiddenStates[hiddenColumnIndex];
-
-                        int wiPrev = (cx - lowerHiddenX) + (cy - lowerHiddenY) * backwardDiam + hiddenIndexPrev * backwardSize + backwardVecSize;
+                    if (!sPrev._feedBack.empty()) {
+                        int feedBackIndexPrev = sPrev._feedBack[hiddenColumnIndex];
 
                         // Output cells
+                        int wiPrev = (cx - lowerHiddenX) + (cy - lowerHiddenY) * backwardDiam + feedBackIndexPrev * backwardSize;
+
                         sColumnActivationPrev += _feedBackWeights[v][visibleCellIndexUpdate][wiPrev];
                     }
+
+                    int hiddenIndexPrev = sPrev._hiddenStates[hiddenColumnIndex];
+
+                    int wiPrev = (cx - lowerHiddenX) + (cy - lowerHiddenY) * backwardDiam + hiddenIndexPrev * backwardSize + backwardVecSize;
+
+                    // Output cells
+                    sColumnActivationPrev += _feedBackWeights[v][visibleCellIndexUpdate][wiPrev];
                 }
+            }
 
-            sColumnActivationPrev *= rescale;
+        sColumnActivationPrev *= rescale;
 
-            // Learn
-            float update = _beta * (qs[t] - sColumnActivationPrev);
-            
-            for (int dcx = -backwardRadius; dcx <= backwardRadius; dcx++)
-                for (int dcy = -backwardRadius; dcy <= backwardRadius; dcy++) {
-                    int cx = hiddenCenterX + dcx;
-                    int cy = hiddenCenterY + dcy;
+        // Learn
+        float update = _beta * (q - sColumnActivationPrev);
+        
+        for (int dcx = -backwardRadius; dcx <= backwardRadius; dcx++)
+            for (int dcy = -backwardRadius; dcy <= backwardRadius; dcy++) {
+                int cx = hiddenCenterX + dcx;
+                int cy = hiddenCenterY + dcy;
 
-                    if (cx >= 0 && cx < _hiddenWidth && cy >= 0 && cy < _hiddenHeight) {
-                        int hiddenColumnIndex = cx + cy * _hiddenWidth;
+                if (cx >= 0 && cx < _hiddenWidth && cy >= 0 && cy < _hiddenHeight) {
+                    int hiddenColumnIndex = cx + cy * _hiddenWidth;
 
-                        if (!sPrev._feedBack.empty()) {
-                            int feedBackIndexPrev = sPrev._feedBack[hiddenColumnIndex];
+                    if (!sPrev._feedBack.empty()) {
+                        int feedBackIndexPrev = sPrev._feedBack[hiddenColumnIndex];
 
-                            // Output cells
-                            int wiPrev = (cx - lowerHiddenX) + (cy - lowerHiddenY) * backwardDiam + feedBackIndexPrev * backwardSize;
-
-                            _feedBackWeights[v][visibleCellIndexUpdate][wiPrev] += update;
-                        }
-
-                        int hiddenIndexPrev = sPrev._hiddenStates[hiddenColumnIndex];
-
-                        int wiPrev = (cx - lowerHiddenX) + (cy - lowerHiddenY) * backwardDiam + hiddenIndexPrev * backwardSize + backwardVecSize;
+                        // Output cells
+                        int wiPrev = (cx - lowerHiddenX) + (cy - lowerHiddenY) * backwardDiam + feedBackIndexPrev * backwardSize;
 
                         _feedBackWeights[v][visibleCellIndexUpdate][wiPrev] += update;
                     }
+
+                    int hiddenIndexPrev = sPrev._hiddenStates[hiddenColumnIndex];
+
+                    int wiPrev = (cx - lowerHiddenX) + (cy - lowerHiddenY) * backwardDiam + hiddenIndexPrev * backwardSize + backwardVecSize;
+
+                    _feedBackWeights[v][visibleCellIndexUpdate][wiPrev] += update;
                 }
-        }
+            }
     }
 }
 
@@ -462,8 +444,8 @@ void Layer::backward(ComputeSystem &cs, const std::vector<int> &feedBack, float 
 
     _historySamples.insert(_historySamples.begin(), s);
 
-    if (_historySamples.size() > _maxHistorySamples)
-        _historySamples.resize(_maxHistorySamples);
+    if (_historySamples.size() > _valueHorizon)
+        _historySamples.resize(_valueHorizon);
 
     std::uniform_int_distribution<int> seedDist(0, 99999);
 
@@ -496,8 +478,7 @@ void Layer::readFromStream(std::istream &is) {
     is.read(reinterpret_cast<char*>(&_alpha), sizeof(float));
     is.read(reinterpret_cast<char*>(&_beta), sizeof(float));
     is.read(reinterpret_cast<char*>(&_gamma), sizeof(float));
-    is.read(reinterpret_cast<char*>(&_maxHistorySamples), sizeof(int));
-    is.read(reinterpret_cast<char*>(&_historyIters), sizeof(int));
+    is.read(reinterpret_cast<char*>(&_valueHorizon), sizeof(int));
 
     int numVisibleLayerDescs;
 
@@ -623,8 +604,7 @@ void Layer::writeToStream(std::ostream &os) {
     os.write(reinterpret_cast<char*>(&_alpha), sizeof(float));
     os.write(reinterpret_cast<char*>(&_beta), sizeof(float));
     os.write(reinterpret_cast<char*>(&_gamma), sizeof(float));
-    os.write(reinterpret_cast<char*>(&_maxHistorySamples), sizeof(int));
-    os.write(reinterpret_cast<char*>(&_historyIters), sizeof(int));
+    os.write(reinterpret_cast<char*>(&_valueHorizon), sizeof(int));
 
     int numVisibleLayerDescs = _visibleLayerDescs.size();
 

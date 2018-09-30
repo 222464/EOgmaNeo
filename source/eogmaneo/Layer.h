@@ -171,18 +171,13 @@ namespace eogmaneo {
         /*!
         \brief Credit assignment horizon.
         */
-        int _maxHistorySamples;
-
-        /*!
-        \brief History iterations.
-        */
-        int _historyIters;
+        int _valueHorizon;
 
         /*!
         \brief Initialize defaults.
         */
         Layer()
-        : _alpha(0.1f), _beta(0.01f), _gamma(0.99f), _maxHistorySamples(64), _historyIters(8)
+        : _alpha(0.01f), _beta(0.1f), _gamma(0.98f), _valueHorizon(32)
         {}
 
         /*!
