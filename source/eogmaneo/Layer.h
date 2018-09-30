@@ -120,8 +120,6 @@ namespace eogmaneo {
         std::vector<int> _hiddenStates;
         std::vector<int> _hiddenStatesPrev;
         
-        std::vector<float> _hiddenBiases;
-        
         std::vector<std::vector<std::vector<float>>> _feedForwardWeights;
         std::vector<std::vector<std::vector<float>>> _feedBackWeights;
 
@@ -171,11 +169,6 @@ namespace eogmaneo {
         float _gamma;
 
         /*!
-        \brief Bias learning rate.
-        */
-        float _delta;
-
-        /*!
         \brief Credit assignment horizon.
         */
         int _maxHistorySamples;
@@ -189,7 +182,7 @@ namespace eogmaneo {
         \brief Initialize defaults.
         */
         Layer()
-        : _alpha(0.1f), _beta(0.1f), _gamma(0.9f), _delta(0.01f), _maxHistorySamples(64), _historyIters(8)
+        : _alpha(0.1f), _beta(0.1f), _gamma(0.9f), _maxHistorySamples(64), _historyIters(8)
         {}
 
         /*!

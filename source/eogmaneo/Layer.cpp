@@ -37,6 +37,18 @@ void Layer::columnForward(int ci) {
 
     int hiddenCellIndexPrev = ci + hiddenStatePrev * _hiddenWidth * _hiddenHeight;
 
+    // Find neighbors
+    std::array<int, 3> neighborCellIndicesPrev;
+
+    for (int dn = -1; dn <= 1; dn++) {
+        int n = hiddenStatePrev + dn;
+
+        if (n >= 0 && n < _columnSize)
+            neighborCellIndicesPrev[dn + 1] = ci + n * _hiddenWidth * _hiddenHeight;
+        else
+            neighborCellIndicesPrev[dn + 1] = -1;
+    }
+
     std::vector<float> columnActivations(_columnSize, 0.0f);
 
     // Activate feed forward
@@ -74,11 +86,15 @@ void Layer::columnForward(int ci) {
 
                             int visibleCellIndex = visibleColumnIndex + c * _visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height;
 
-                            float recon = sigmoid(_reconsActLearn[v][visibleCellIndex] / std::max(1.0f, _reconCountsActLearn[v][visibleCellIndex]));
-
                             float target = (c == inputIndexPrev ? 1.0f : 0.0f);
 
-                            _feedForwardWeights[v][hiddenCellIndexPrev][wi] += _alpha * (target - recon);
+                            for (int n = 0; n < neighborCellIndicesPrev.size(); n++) {
+                                int reconIndex = visibleCellIndex + n * _visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height * _visibleLayerDescs[v]._columnSize;
+
+                                float recon = sigmoid(_reconsActLearn[v][reconIndex] / std::max(1.0f, _reconCountsActLearn[v][reconIndex]));
+
+                                _feedForwardWeights[v][neighborCellIndicesPrev[n]][wi] += _alpha * (target - recon);
+                            }
                         }
                     }
 
@@ -97,22 +113,25 @@ void Layer::columnForward(int ci) {
 	// Find max element
 	int maxCellIndex = 0;
 
-	for (int c = 0; c < _columnSize; c++) {
-        int hiddenCellIndex = ci + c * _hiddenWidth * _hiddenHeight;
-               
-        columnActivations[c] += _hiddenBiases[hiddenCellIndex];
-
-        _hiddenBiases[hiddenCellIndex] += _delta * -columnActivations[c];
-
+	for (int c = 1; c < _columnSize; c++) {
 		if (columnActivations[c] > columnActivations[maxCellIndex])
 			maxCellIndex = c;
 	}
 
     _hiddenStates[ci] = maxCellIndex;
 
-    int hiddenCellIndex = ci + maxCellIndex * _hiddenWidth * _hiddenHeight;
-
     // Reconstruct
+    std::array<int, 3> neighborCellIndices;
+
+    for (int dn = -1; dn <= 1; dn++) {
+        int n = maxCellIndex + dn;
+
+        if (n >= 0 && n < _columnSize)
+            neighborCellIndices[dn + 1] = ci + n * _hiddenWidth * _hiddenHeight;
+        else
+            neighborCellIndices[dn + 1] = -1;
+    }
+
     for (int v = 0; v < _visibleLayerDescs.size(); v++) {
         float toInputX = static_cast<float>(_visibleLayerDescs[v]._width) / static_cast<float>(_hiddenWidth);
         float toInputY = static_cast<float>(_visibleLayerDescs[v]._height) / static_cast<float>(_hiddenHeight);
@@ -137,14 +156,17 @@ void Layer::columnForward(int ci) {
                 if (cx >= 0 && cx < _visibleLayerDescs[v]._width && cy >= 0 && cy < _visibleLayerDescs[v]._height) {
                     int visibleColumnIndex = cx + cy * _visibleLayerDescs[v]._width;
 
-                    // Input cells
                     for (int c = 0; c < _visibleLayerDescs[v]._columnSize; c++) {
                         int wi = (cx - lowerVisibleX) + (cy - lowerVisibleY) * forwardDiam + c * forwardSize;
 
                         int visibleCellIndex = visibleColumnIndex + c * _visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height;
 
-                        _recons[v][visibleCellIndex] += _feedForwardWeights[v][hiddenCellIndex][wi];
-                        _reconCounts[v][visibleCellIndex] += 1.0f;
+                        for (int n = 0; n < neighborCellIndices.size(); n++) {
+                            int reconIndex = visibleCellIndex + n * _visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height * _visibleLayerDescs[v]._columnSize;
+
+                            _recons[v][reconIndex] += _feedForwardWeights[v][neighborCellIndices[n]][wi];
+                            _reconCounts[v][reconIndex] += 1.0f;
+                        }
                     }
                 }
             }
@@ -339,9 +361,7 @@ void Layer::create(int hiddenWidth, int hiddenHeight, int columnSize, const std:
 
     _hiddenStates.resize(_hiddenWidth * _hiddenHeight, 0);
 
-    _hiddenBiases.resize(_hiddenStates.size() * _columnSize, 0.0f);
-
-    std::uniform_real_distribution<float> initWeightDistHigh(0.9f, 1.0f);
+    std::uniform_real_distribution<float> initWeightDistHigh(-0.1f, 0.1f);
     std::uniform_real_distribution<float> initWeightDistLow(-0.0001f, 0.0001f);
 
     for (int v = 0; v < _visibleLayerDescs.size(); v++) {
@@ -402,7 +422,7 @@ void Layer::forward(ComputeSystem &cs, const std::vector<std::vector<int>> &inpu
     _recons.resize(_visibleLayerDescs.size());
 
     for (int v = 0; v < _visibleLayerDescs.size(); v++)
-        _recons[v].resize(_visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height * _visibleLayerDescs[v]._columnSize, 0.0f);
+        _recons[v].resize(_visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height * _visibleLayerDescs[v]._columnSize * 3, 0.0f);
     
     _reconCounts = _recons;
 
@@ -470,7 +490,6 @@ void Layer::readFromStream(std::istream &is) {
     is.read(reinterpret_cast<char*>(&_alpha), sizeof(float));
     is.read(reinterpret_cast<char*>(&_beta), sizeof(float));
     is.read(reinterpret_cast<char*>(&_gamma), sizeof(float));
-    is.read(reinterpret_cast<char*>(&_delta), sizeof(float));
     is.read(reinterpret_cast<char*>(&_maxHistorySamples), sizeof(int));
     is.read(reinterpret_cast<char*>(&_historyIters), sizeof(int));
 
@@ -494,7 +513,6 @@ void Layer::readFromStream(std::istream &is) {
     _hiddenStatesPrev.resize(_hiddenStates.size());
     _feedBack.resize(_hiddenStates.size());
     _feedBackPrev.resize(_hiddenStates.size());
-    _hiddenBiases.resize(_hiddenStates.size() * _columnSize);
 
     is.read(reinterpret_cast<char*>(_hiddenStates.data()), _hiddenStates.size() * sizeof(int));
     is.read(reinterpret_cast<char*>(_hiddenStatesPrev.data()), _hiddenStatesPrev.size() * sizeof(int));
@@ -507,8 +525,6 @@ void Layer::readFromStream(std::istream &is) {
 
     if (_feedBackPrev.front() == -1)
         _feedBackPrev.clear();
-
-    is.read(reinterpret_cast<char*>(_hiddenBiases.data()), _hiddenBiases.size() * sizeof(float));
 
     for (int v = 0; v < _visibleLayerDescs.size(); v++) {
         // Visible layer data
@@ -601,7 +617,6 @@ void Layer::writeToStream(std::ostream &os) {
     os.write(reinterpret_cast<char*>(&_alpha), sizeof(float));
     os.write(reinterpret_cast<char*>(&_beta), sizeof(float));
     os.write(reinterpret_cast<char*>(&_gamma), sizeof(float));
-    os.write(reinterpret_cast<char*>(&_delta), sizeof(float));
     os.write(reinterpret_cast<char*>(&_maxHistorySamples), sizeof(int));
     os.write(reinterpret_cast<char*>(&_historyIters), sizeof(int));
 
@@ -626,8 +641,6 @@ void Layer::writeToStream(std::ostream &os) {
 
     os.write(reinterpret_cast<char*>(writeFeedBack.data()), writeFeedBack.size() * sizeof(int));
     os.write(reinterpret_cast<char*>(writeFeedBackPrev.data()), writeFeedBackPrev.size() * sizeof(int));
-
-    os.write(reinterpret_cast<char*>(_hiddenBiases.data()), _hiddenBiases.size() * sizeof(float));
 
     for (int v = 0; v < _visibleLayerDescs.size(); v++) {
         // Visible layer data
