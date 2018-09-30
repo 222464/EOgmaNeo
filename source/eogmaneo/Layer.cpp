@@ -89,6 +89,9 @@ void Layer::columnForward(int ci) {
                             float target = (c == inputIndexPrev ? 1.0f : 0.0f);
 
                             for (int n = 0; n < neighborCellIndicesPrev.size(); n++) {
+                                if (neighborCellIndicesPrev[n] == -1)
+                                    continue;
+
                                 int reconIndex = visibleCellIndex + n * _visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height * _visibleLayerDescs[v]._columnSize;
 
                                 float recon = sigmoid(_reconsActLearn[v][reconIndex] / std::max(1.0f, _reconCountsActLearn[v][reconIndex]));
@@ -162,6 +165,9 @@ void Layer::columnForward(int ci) {
                         int visibleCellIndex = visibleColumnIndex + c * _visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height;
 
                         for (int n = 0; n < neighborCellIndices.size(); n++) {
+                            if (neighborCellIndices[n] == -1)
+                                continue;
+
                             int reconIndex = visibleCellIndex + n * _visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height * _visibleLayerDescs[v]._columnSize;
 
                             _recons[v][reconIndex] += _feedForwardWeights[v][neighborCellIndices[n]][wi];
