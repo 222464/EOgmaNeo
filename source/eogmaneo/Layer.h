@@ -182,7 +182,7 @@ namespace eogmaneo {
         \brief Initialize defaults.
         */
         Layer()
-        : _alpha(0.1f), _beta(0.1f), _gamma(0.9f), _maxHistorySamples(64), _historyIters(8)
+        : _alpha(0.1f), _beta(0.01f), _gamma(0.99f), _maxHistorySamples(64), _historyIters(8)
         {}
 
         /*!
