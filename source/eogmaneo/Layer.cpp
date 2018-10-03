@@ -391,8 +391,7 @@ void Layer::create(int hiddenWidth, int hiddenHeight, int columnSize, const std:
 
     _hiddenStates.resize(_hiddenWidth * _hiddenHeight, 0);
 
-    std::uniform_real_distribution<float> initWeightDistHigh(0.99f, 1.0f);
-    std::uniform_real_distribution<float> initWeightDistLow(-0.0001f, 0.0001f);
+    std::uniform_real_distribution<float> initWeightDist(-0.0001f, 0.0001f);
 
     for (int v = 0; v < _visibleLayerDescs.size(); v++) {
         _inputs[v].resize(_visibleLayerDescs[v]._width * _visibleLayerDescs[v]._height, 0);
@@ -411,7 +410,7 @@ void Layer::create(int hiddenWidth, int hiddenHeight, int columnSize, const std:
                     _feedForwardWeights[v][hiddenCellIndex].resize(forwardVecSize);
                     
                     for (int j = 0; j < forwardVecSize; j++)
-                        _feedForwardWeights[v][hiddenCellIndex][j] = initWeightDistHigh(rng);
+                        _feedForwardWeights[v][hiddenCellIndex][j] = initWeightDist(rng);
                 }
 
         if (_visibleLayerDescs[v]._predict) {
@@ -429,7 +428,7 @@ void Layer::create(int hiddenWidth, int hiddenHeight, int columnSize, const std:
                         _feedBackWeights[v][visibleCellIndex].resize(backwardVecSize);
 
                         for (int j = 0; j < backwardVecSize; j++)
-                            _feedBackWeights[v][visibleCellIndex][j] = initWeightDistLow(rng);
+                            _feedBackWeights[v][visibleCellIndex][j] = initWeightDist(rng);
                     }
         }
     }
