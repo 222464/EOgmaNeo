@@ -237,24 +237,37 @@ void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
 
     float rescale = 1.0f / std::max(1.0f, count);
 
-    int predIndex = 0;
+    int maxIndex = 0;
 
     for (int c = 0; c < visibleColumnSize; c++) {
         columnActivations[c] *= rescale;
 
-        if (columnActivations[c] > columnActivations[predIndex])
-            predIndex = c;
+        if (columnActivations[c] > columnActivations[maxIndex])
+            maxIndex = c;
     }
+
+    _predictions[v][ci] = maxIndex;
+
+    float total = 0.0f;
+
+    for (int c = 0; c < visibleColumnSize; c++)
+        total += std::exp(columnActivations[c] - columnActivations[maxIndex]);
 
     std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
 
-    if (dist01(rng) < _epsilon) {
-        std::uniform_int_distribution<int> columnDist(0, visibleColumnSize - 1);
+    float cusp = dist01(rng) * total;
 
-        _predictions[v][ci] = columnDist(rng);
+    float sumSoFar = 0.0f;
+
+    for (int c = 0; c < visibleColumnSize; c++) {
+        sumSoFar += std::exp(columnActivations[c] - columnActivations[maxIndex]);
+
+        if (sumSoFar >= cusp) {
+            _predictions[v][ci] = c;
+
+            break;
+        }
     }
-    else
-        _predictions[v][ci] = predIndex;
 
     if (_historySamples.size() == _valueHorizon && _learn) {
         float q = columnActivations[_predictions[v][ci]];
@@ -484,7 +497,6 @@ void Layer::readFromStream(std::istream &is) {
     is.read(reinterpret_cast<char*>(&_alpha), sizeof(float));
     is.read(reinterpret_cast<char*>(&_beta), sizeof(float));
     is.read(reinterpret_cast<char*>(&_gamma), sizeof(float));
-    is.read(reinterpret_cast<char*>(&_epsilon), sizeof(float));
     is.read(reinterpret_cast<char*>(&_codeIters), sizeof(int));
     is.read(reinterpret_cast<char*>(&_valueHorizon), sizeof(int));
 
@@ -613,7 +625,6 @@ void Layer::writeToStream(std::ostream &os) {
     os.write(reinterpret_cast<char*>(&_alpha), sizeof(float));
     os.write(reinterpret_cast<char*>(&_beta), sizeof(float));
     os.write(reinterpret_cast<char*>(&_gamma), sizeof(float));
-    os.write(reinterpret_cast<char*>(&_epsilon), sizeof(float));
     os.write(reinterpret_cast<char*>(&_codeIters), sizeof(int));
     os.write(reinterpret_cast<char*>(&_valueHorizon), sizeof(int));
 
