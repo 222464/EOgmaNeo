@@ -31,6 +31,8 @@ namespace eogmaneo {
 
 		int _ci;
 
+        std::mt19937 _rng;
+
 		LayerForwardWorkItem()
 			: _pLayer(nullptr)
 		{}
@@ -102,8 +104,9 @@ namespace eogmaneo {
     \brief History sample.
     */
     struct HistorySample {
-        std::vector<int> _hiddenStates;
-        std::vector<int> _feedBack;
+        std::vector<std::vector<int> > _inputsPrev;
+        std::vector<int> _hiddenStatesPrev;
+        std::vector<int> _feedBackPrev;
         std::vector<std::vector<int> > _predictionsPrev;
         float _reward;
     };
@@ -118,9 +121,6 @@ namespace eogmaneo {
         int _columnSize;
 
         std::vector<int> _hiddenStates;
-        std::vector<int> _hiddenStatesPrev;
-
-        std::vector<float> _hiddenActivations;
         
         std::vector<std::vector<std::vector<float>>> _feedForwardWeights;
         std::vector<std::vector<std::vector<float>>> _feedBackWeights;
@@ -130,24 +130,14 @@ namespace eogmaneo {
         std::vector<std::vector<int>> _predictions;
         
         std::vector<std::vector<int>> _inputs;
-        std::vector<std::vector<int>> _inputsPrev;
-
-        std::vector<std::vector<float>> _recons;
-        std::vector<std::vector<float>> _reconCounts;
-
-        std::vector<std::vector<float>> _reconsActLearn;
-        std::vector<std::vector<float>> _reconCountsActLearn;
         
         std::vector<int> _feedBack;
-        std::vector<int> _feedBackPrev;
 
         std::vector<HistorySample> _historySamples;
 
-        int _codeIter;
-
         bool _learn;
   
-        void columnForward(int ci);
+        void columnForward(int ci, std::mt19937 &rng);
         void columnBackward(int ci, int v, std::mt19937 &rng);
 
         /*!
@@ -163,11 +153,6 @@ namespace eogmaneo {
         float _alpha;
         
         /*!
-        \brief Learning rate for feed back weights.
-        */
-        float _beta;
-
-        /*!
         \brief Discount factor.
         */
         float _gamma;
@@ -178,15 +163,10 @@ namespace eogmaneo {
         int _valueHorizon;
 
         /*!
-        \brief Sparse coding iterations.
-        */
-        int _codeIters;
-
-        /*!
         \brief Initialize defaults.
         */
         Layer()
-        : _alpha(0.01f), _beta(0.1f), _gamma(0.99f), _valueHorizon(32), _codeIters(4)
+        : _alpha(0.1f), _gamma(0.95f), _valueHorizon(32)
         {}
 
         /*!
@@ -203,17 +183,17 @@ namespace eogmaneo {
         /*!
         \brief Forward activation and learning.
         \param inputs vector of input SDRs in columnar format.
+        \param reward reinforcement signal.
         \param learn whether to learn.
         */
-        void forward(ComputeSystem &cs, const std::vector<std::vector<int> > &inputs, bool learn);
+        void forward(ComputeSystem &cs, const std::vector<std::vector<int> > &inputs, float reward, bool learn);
 
         /*!
         \brief Backward activation.
         \param feedBack vector of feedback SDRs in columnar format.
-        \param reward reinforcement signal.
         \param learn whether to learn.
         */
-        void backward(ComputeSystem &cs, const std::vector<int> &feedBack, float reward, bool learn);
+        void backward(ComputeSystem &cs, const std::vector<int> &feedBack, bool learn);
 
         //!@{
         /*!
@@ -257,24 +237,10 @@ namespace eogmaneo {
         }
 
         /*!
-        \brief Get previous hidden states, in columnar format.
-        */
-        const std::vector<int> &getHiddenStatesPrev() const {
-            return _hiddenStatesPrev;
-        }
-
-        /*!
         \brief Get inputs of a visible layer, in columnar format.
         */
         const std::vector<int> &getInputs(int v) const {
             return _inputs[v];
-        }
-
-        /*!
-        \brief Get previous inputs of a visible layer, in columnar format.
-        */
-        const std::vector<int> &getInputsPrev(int v) const {
-            return _inputsPrev[v];
         }
 
         /*!

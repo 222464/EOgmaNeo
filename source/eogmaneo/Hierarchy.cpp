@@ -112,8 +112,10 @@ void Hierarchy::step(ComputeSystem &cs, const std::vector<std::vector<int>> &inp
             _ticks[l] = 0;
 
             updates[l] = true;
+
+            float r = _rewards[l] / std::max(1.0f, _rewardCounts[l]);
             
-            _layers[l].forward(cs, _histories[l], learn);
+            _layers[l].forward(cs, _histories[l], r, learn);
 
             // Add to next layer's history
             if (l < _layers.size() - 1) {
@@ -141,9 +143,7 @@ void Hierarchy::step(ComputeSystem &cs, const std::vector<std::vector<int>> &inp
             else
                 feedBack = topFeedBack;
 
-            float r = _rewards[l] / std::max(1.0f, _rewardCounts[l]);
-
-            _layers[l].backward(cs, feedBack, r, learn);
+            _layers[l].backward(cs, feedBack, learn);
 
             _rewards[l] = 0.0f;
             _rewardCounts[l] = 0.0f;
