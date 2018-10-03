@@ -101,17 +101,6 @@ namespace eogmaneo {
 	};
 
     /*!
-    \brief History sample.
-    */
-    struct HistorySample {
-        std::vector<std::vector<int> > _inputsPrev;
-        std::vector<int> _hiddenStatesPrev;
-        std::vector<int> _feedBackPrev;
-        std::vector<std::vector<int> > _predictionsPrev;
-        float _reward;
-    };
-
-    /*!
     \brief A layer in the hierarchy.
     */
     class Layer {
@@ -121,6 +110,7 @@ namespace eogmaneo {
         int _columnSize;
 
         std::vector<int> _hiddenStates;
+        std::vector<int> _hiddenStatesPrev;
         
         std::vector<std::vector<std::vector<float>>> _feedForwardWeights;
         std::vector<std::vector<std::vector<float>>> _feedBackWeights;
@@ -130,12 +120,14 @@ namespace eogmaneo {
         std::vector<std::vector<int>> _predictions;
         
         std::vector<std::vector<int>> _inputs;
+        std::vector<std::vector<int>> _inputsPrev;
         
         std::vector<int> _feedBack;
-
-        std::vector<HistorySample> _historySamples;
+        std::vector<int> _feedBackPrev;
 
         bool _learn;
+
+        float _reward;
   
         void columnForward(int ci, std::mt19937 &rng);
         void columnBackward(int ci, int v, std::mt19937 &rng);
@@ -156,17 +148,12 @@ namespace eogmaneo {
         \brief Discount factor.
         */
         float _gamma;
-
-        /*!
-        \brief Credit assignment horizon.
-        */
-        int _valueHorizon;
-
+        
         /*!
         \brief Initialize defaults.
         */
         Layer()
-        : _alpha(0.1f), _gamma(0.9f), _valueHorizon(8)
+        : _alpha(0.1f), _gamma(0.9f)
         {}
 
         /*!
