@@ -158,15 +158,20 @@ namespace eogmaneo {
         float _gamma;
 
         /*!
-        \brief Credit assignment horizon.
+        \brief Replay history buffer size.
         */
-        int _valueHorizon;
+        int _maxHistorySamples;
+
+        /*!
+        \brief Replay samples.
+        */
+        int _historyIters;
 
         /*!
         \brief Initialize defaults.
         */
         Layer()
-        : _alpha(0.1f), _gamma(0.9f), _valueHorizon(8)
+        : _alpha(0.1f), _gamma(0.9f), _maxHistorySamples(512), _historyIters(16)
         {}
 
         /*!
