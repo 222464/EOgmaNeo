@@ -313,7 +313,7 @@ void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
     if (_historySamples.size() > 2 && _learn) {
         std::vector<float> qs(_historySamples.size());
 
-        float q = columnActivations[_hiddenStates[ci]];
+        float q = columnActivations[_predictions[v][ci]];
 
         for (int t = 0; t < _historySamples.size(); t++) {
             const HistorySample &s = _historySamples[t];            
