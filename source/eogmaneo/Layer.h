@@ -141,11 +141,11 @@ namespace eogmaneo {
         std::vector<int> _feedBack;
         std::vector<int> _feedBackPrev;
 
-        std::vector<HistorySample> _historySamples;
-
         int _codeIter;
 
         bool _learn;
+
+        float _reward;
   
         void columnForward(int ci);
         void columnBackward(int ci, int v, std::mt19937 &rng);
@@ -178,11 +178,6 @@ namespace eogmaneo {
         float _epsilon;
 
         /*!
-        \brief Credit assignment horizon.
-        */
-        int _valueHorizon;
-
-        /*!
         \brief Sparse coding iterations.
         */
         int _codeIters;
@@ -191,7 +186,7 @@ namespace eogmaneo {
         \brief Initialize defaults.
         */
         Layer()
-        : _alpha(0.01f), _beta(0.05f), _gamma(0.95f), _epsilon(0.02f), _valueHorizon(32), _codeIters(4)
+        : _alpha(0.01f), _beta(0.05f), _gamma(0.95f), _epsilon(0.02f), _codeIters(4)
         {}
 
         /*!
