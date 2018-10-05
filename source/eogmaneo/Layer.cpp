@@ -195,7 +195,7 @@ void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
     int lowerHiddenY = hiddenCenterY - backwardRadius;
 
     std::vector<float> columnActivations(visibleColumnSize, 0.0f);
-    float columnActivationPrev = 0.0f;
+    std::vector<float> columnActivationsPrev(visibleColumnSize, 0.0f);
     float count = 0.0f;
 
     int updateIndex = _predictions[v][ci];
@@ -222,9 +222,8 @@ void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
                         int visibleCellIndex = ci + c * visibleWidth * visibleHeight;
                             
                         columnActivations[c] += _feedBackWeights[v][visibleCellIndex][wiCur];
+                        columnActivationsPrev[c] += _feedBackWeights[v][visibleCellIndex][wiPrev];
                     }
-
-                    columnActivationPrev += _feedBackWeights[v][visibleCellIndexUpdate][wiPrev];
 
                     count += 1.0f;
                 }
@@ -240,9 +239,8 @@ void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
                     int visibleCellIndex = ci + c * visibleWidth * visibleHeight;
         
                     columnActivations[c] += _feedBackWeights[v][visibleCellIndex][wiCur];
+                    columnActivationsPrev[c] += _feedBackWeights[v][visibleCellIndex][wiPrev];
                 }
-
-                columnActivationPrev += _feedBackWeights[v][visibleCellIndexUpdate][wiPrev];
 
                 count += 1.0f;
             }
@@ -251,15 +249,18 @@ void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
     float rescale = 1.0f / std::max(1.0f, count);
 
     int maxIndex = 0;
+    int maxIndexPrev = 0;
 
     for (int c = 0; c < visibleColumnSize; c++) {
         columnActivations[c] *= rescale;
+        columnActivationsPrev[c] *= rescale;
 
         if (columnActivations[c] > columnActivations[maxIndex])
             maxIndex = c;
-    }
 
-    columnActivationPrev *= rescale;
+        if (columnActivationsPrev[c] > columnActivationsPrev[maxIndexPrev])
+            maxIndexPrev = c;
+    }
 
     std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
 
@@ -271,9 +272,13 @@ void Layer::columnBackward(int ci, int v, std::mt19937 &rng) {
     else
         _predictions[v][ci] = maxIndex;
 
-    float tdError = _reward + _gamma * columnActivations[maxIndex] - columnActivationPrev;
+    float dQ = _reward + _gamma * columnActivations[maxIndex] - columnActivationsPrev[updateIndex];
 
-    float update = _beta * tdError;
+    float dAdv = dQ - _k * (columnActivationsPrev[maxIndexPrev] - columnActivationsPrev[updateIndex]);
+
+    float dPAL = std::max(dAdv, dQ - _k * (columnActivations[maxIndex] - columnActivations[updateIndex]));
+    
+    float update = _beta * dPAL;
         
     for (int dcx = -backwardRadius; dcx <= backwardRadius; dcx++)
         for (int dcy = -backwardRadius; dcy <= backwardRadius; dcy++) {

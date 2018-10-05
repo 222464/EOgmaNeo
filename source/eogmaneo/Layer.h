@@ -173,6 +173,11 @@ namespace eogmaneo {
         float _gamma;
 
         /*!
+        \brief Adv scaling factor.
+        */
+        float _k;
+
+        /*!
         \brief Discount factor.
         */
         float _epsilon;
@@ -186,7 +191,7 @@ namespace eogmaneo {
         \brief Initialize defaults.
         */
         Layer()
-        : _alpha(0.01f), _beta(0.05f), _gamma(0.95f), _epsilon(0.02f), _codeIters(4)
+        : _alpha(0.01f), _beta(0.05f), _gamma(0.95f), _k(0.5f), _epsilon(0.02f), _codeIters(4)
         {}
 
         /*!
