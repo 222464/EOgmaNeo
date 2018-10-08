@@ -178,6 +178,11 @@ namespace eogmaneo {
         float _epsilon;
 
         /*!
+        \brief Early stopping amount [0, 1)
+        */
+        float _earlyStop;
+
+        /*!
         \brief Credit assignment horizon.
         */
         int _valueHorizon;
@@ -191,7 +196,7 @@ namespace eogmaneo {
         \brief Initialize defaults.
         */
         Layer()
-        : _alpha(0.01f), _beta(0.05f), _gamma(0.95f), _epsilon(0.02f), _valueHorizon(32), _codeIters(4)
+        : _alpha(0.01f), _beta(0.05f), _gamma(0.95f), _epsilon(0.02f), _earlyStop(0.1f), _valueHorizon(32), _codeIters(4)
         {}
 
         /*!
