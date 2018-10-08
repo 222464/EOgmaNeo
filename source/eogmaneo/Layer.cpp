@@ -77,8 +77,9 @@ void Layer::columnForward(int ci) {
                             float recon = _reconsActLearn[v][visibleCellIndex] / std::max(1.0f, _reconCountsActLearn[v][visibleCellIndex]);
 
                             float target = (c == inputIndexPrev ? 1.0f : 0.0f);
-                            
-                            _feedForwardWeights[v][hiddenCellIndexPrev][wi] = std::max(0.0f, _feedForwardWeights[v][hiddenCellIndexPrev][wi] + _alpha * (target - recon));
+
+                            if (recon > _earlyStop && c != inputIndexPrev || recon < (1.0f - _earlyStop) && c == inputIndexPrev) // Early stopping
+                                _feedForwardWeights[v][hiddenCellIndexPrev][wi] = std::max(0.0f, _feedForwardWeights[v][hiddenCellIndexPrev][wi] + _alpha * (target - recon));
                         }
                     }
 
@@ -485,6 +486,7 @@ void Layer::readFromStream(std::istream &is) {
     is.read(reinterpret_cast<char*>(&_beta), sizeof(float));
     is.read(reinterpret_cast<char*>(&_gamma), sizeof(float));
     is.read(reinterpret_cast<char*>(&_epsilon), sizeof(float));
+    is.read(reinterpret_cast<char*>(&_earlyStop), sizeof(float));
     is.read(reinterpret_cast<char*>(&_codeIters), sizeof(int));
     is.read(reinterpret_cast<char*>(&_valueHorizon), sizeof(int));
 
@@ -614,6 +616,7 @@ void Layer::writeToStream(std::ostream &os) {
     os.write(reinterpret_cast<char*>(&_beta), sizeof(float));
     os.write(reinterpret_cast<char*>(&_gamma), sizeof(float));
     os.write(reinterpret_cast<char*>(&_epsilon), sizeof(float));
+    os.write(reinterpret_cast<char*>(&_earlyStop), sizeof(float));
     os.write(reinterpret_cast<char*>(&_codeIters), sizeof(int));
     os.write(reinterpret_cast<char*>(&_valueHorizon), sizeof(int));
 
